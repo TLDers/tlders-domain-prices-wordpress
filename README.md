@@ -126,7 +126,7 @@ The plugin uses your theme's fonts. To change the colours, override these in you
 ## For developers
 
 - `tlders_dp_client_options` filters the API client options (`base`, `userAgent`, `ttl`, `freeTlds`).
-- Settings are stored in the `tlders_dp_settings` option, and cached prices in `wp-content/uploads/tlders-cache/`.
+- Settings are stored in the `tlders_dp_settings` option. Cached prices are transients prefixed `tlders_dp_`, so a persistent object cache (Redis, Memcached) is used automatically.
 - `lib/` is the TLDers PHP SDK (PHP 7.4+, no dependencies), bundled so the plugin needs no Composer.
 
 ## Privacy and external services
