@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
  * contract (/wp-json/tlders/v1/...). The site owner's API key and affiliate
  * links stay on their server; the app only receives prices and buy links.
  *
- *   GET {base}/config                  site name, currency, disclosure, popular TLDs
+ *   GET {base}/config                  site name, currency, disclosure, popular TLDs, theme {skin, accent}
  *   GET {base}/search?q=example.io     offers for the TLD of what was typed
  *   GET {base}/tld/{tld}               offers for one TLD
  *   GET {base}/cheapest?tlds=com,io    cheapest offer per TLD
@@ -35,7 +35,7 @@ class AppApi
     private $site;
 
     /**
-     * @param array $site name, disclosure, popularTlds (string[])
+     * @param array $site name, disclosure, popularTlds (string[]), skin, accent (#hex)
      */
     public function __construct(Client $client, Links $links, Currency $currency, array $site)
     {
@@ -80,6 +80,11 @@ class AppApi
                 'decimals' => $this->currency->decimals,
             ],
             'popularTlds' => array_values($this->site['popularTlds']),
+            // The app takes its look from the site, so owners restyle it without an app update.
+            'theme' => [
+                'skin' => Insights::skin(isset($this->site['skin']) ? $this->site['skin'] : 'minimal'),
+                'accent' => isset($this->site['accent']) ? (string) $this->site['accent'] : '',
+            ],
             // Free TLDers keys can only look up some TLDs; the app uses this to
             // say so instead of showing an empty result.
             'searchableTlds' => $this->client->plan() === 'paid' ? null : $this->client->freeTlds(),
@@ -108,10 +113,13 @@ class AppApi
         if (!$offers) {
             return [404, ['error' => "No prices found for .$tld."]];
         }
+        $summary = Insights::summary($offers);
         return [200, [
             'tld' => $tld,
             'domain' => $domain,
             'offers' => array_map([$this, 'present'], $offers),
+            'average' => $this->currency->convert($summary['average']),
+            'savingPct' => $summary['savingPct'],
         ]];
     }
 
@@ -130,7 +138,8 @@ class AppApi
                 }
             }
             if ($best !== null) {
-                $items[] = ['tld' => $tld] + $this->present($best);
+                $summary = Insights::summary($offers);
+                $items[] = ['tld' => $tld] + $this->present($best) + ['savingPct' => $summary['savingPct']];
             }
         }
         return ['items' => $items];
@@ -144,6 +153,7 @@ class AppApi
             'renew' => $this->currency->convert($offer['renew']),
             'transfer' => $this->currency->convert($offer['transfer']),
             'buyUrl' => $offer['buyUrl'],
+            'renewJump' => Insights::renewJump($offer),
         ];
     }
 }

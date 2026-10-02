@@ -6,3 +6,17 @@
 .tlders-admin .tlders-currency input[type="number"] { width: 6em; }
 .tlders-admin .tlders-help { max-width: 1100px; }
 .tlders-admin .tlders-help td:first-child { width: 320px; }
+
+.tlders-admin .tlders-skin-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; max-width: 960px; }
+.tlders-admin .tlders-skin-option { display: block; cursor: pointer; border: 2px solid #dcdcde; border-radius: 10px; overflow: hidden; background: #fff; position: relative; }
+.tlders-admin .tlders-skin-option input { position: absolute; opacity: 0; }
+.tlders-admin .tlders-skin-option:has(input:checked) { border-color: #2271b1; box-shadow: 0 0 0 2px #2271b1; }
+.tlders-admin .tlders-skin-option:has(input:focus-visible) { outline: 2px solid #2271b1; outline-offset: 2px; }
+.tlders-admin .tlders-swatch { display: block; height: 48px; }
+.tlders-admin .tlders-skin-name { display: block; padding: 7px 10px; font-weight: 600; font-size: 12px; }
+.tlders-admin .tlders-swatch-theme .tlders-swatch { background: repeating-linear-gradient(135deg, #f0f0f1 0 10px, #e2e4e7 10px 20px); }
+.tlders-admin .tlders-swatch-aurora .tlders-swatch { background: linear-gradient(135deg, #4f46e5, #7c3aed, #db2777); }
+.tlders-admin .tlders-swatch-midnight .tlders-swatch { background: linear-gradient(135deg, #0b1124, #164e63 60%, #22d3ee); }
+.tlders-admin .tlders-swatch-fresh .tlders-swatch { background: linear-gradient(135deg, #a7f3d0, #5eead4 60%, #059669); }
+.tlders-admin .tlders-swatch-sunset .tlders-swatch { background: linear-gradient(135deg, #f97316, #ef4444, #db2777); }
+.tlders-admin .tlders-swatch-minimal .tlders-swatch { background: linear-gradient(135deg, #f6f8fc, #dbe4f3 60%, #2563eb); }

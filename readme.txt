@@ -25,6 +25,13 @@ It suits hosting and web design blogs, domain investors, "best domain registrar"
 * **Cheapest price list:** the cheapest registrar for each extension you choose.
 * **Inline price** inside your text, e.g. "$9.58 at Namecheap", linked.
 
+= 6 skins =
+
+* **Theme** (default) blends into your site's own fonts and colours
+* **Aurora** (indigo to pink gradients), **Midnight** (dark with neon accents), **Fresh** (mint and teal), **Sunset** (orange to pink) and **Minimal** (clean and blue)
+
+Pick one in Settings, or set a different skin per block, widget or shortcode (`skin="midnight"`). Every skin shows registrar avatars, a "Best price" badge, how much the cheapest registrar saves against the average, price bars, and a "Promo first year" warning when a cheap first year renews much higher.
+
 Add them with the **Domain Prices block** (posts, pages and block-theme widget areas, with a live preview), the **sidebar widget** (classic themes), or shortcodes.
 
 = Built for affiliates =
@@ -115,19 +122,20 @@ Over 145, including Namecheap, Porkbun, Spaceship, Dynadot, Name.com, NameSilo, 
 
 = Can I change the colours? =
 
-Yes. Override the `--tlders-accent` CSS variable (and the others in assets/tlders.css) in your theme.
+Pick one of the six skins in Settings. To fine-tune, override the `--tlders-accent` CSS variable (and the others in assets/tlders.css) in your theme.
 
 == Screenshots ==
 
-1. A domain search: visitors type the domain they want and see every registrar's register and renew price, with Buy buttons that use your affiliate links.
-2. The cheapest registrar for each extension in the main column, plus a search box and a compact price list in a narrow side column.
-3. On phones, tables turn into cards so the Buy button is always in view.
-4. Settings: paste your affiliate link for each registrar you've joined; registrars without your link can link through TLDers or be hidden.
+1. A domain search in the Aurora skin: best price, average and savings, then every registrar with price bars, renewal warnings and Buy buttons that use your affiliate links.
+2. Extension cards with the cheapest registrar and savings, plus a search box and compact price list in a narrow side column.
+3. On phones the cards stay readable and the Buy button stays in view (Sunset skin).
+4. Settings: pick one of six skins, set your currency, and paste your affiliate link for each registrar you've joined.
+5. Mix skins on one page: an Aurora search and extension cards above a Midnight price table.
 
 == Changelog ==
 
 = 1.0.0 =
-* First release: Domain Prices block, sidebar widget, four shortcodes, per-registrar affiliate links, currency conversion, affiliate disclosure, background refresh and an optional mobile app API.
+* First release: Domain Prices block, sidebar widget, four shortcodes, six skins, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
 
 == Upgrade Notice ==
 

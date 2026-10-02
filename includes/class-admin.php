@@ -93,6 +93,7 @@ class TLDers_DP_Admin
         $out['decimals'] = max(0, min(3, isset($input['decimals']) ? (int) $input['decimals'] : 2));
         $out['free_tlds'] = implode(', ', Client::normalizeList(isset($input['free_tlds']) ? $input['free_tlds'] : '')) ?: implode(', ', Client::DEFAULT_FREE_TLDS);
         $out['popular_tlds'] = implode(', ', Client::normalizeList(isset($input['popular_tlds']) ? $input['popular_tlds'] : '')) ?: TLDers_DP_Plugin::defaults()['popular_tlds'];
+        $out['skin'] = isset($input['skin'], TLDers_DP_Views::skins()[$input['skin']]) ? $input['skin'] : 'theme';
         foreach (['new_tab', 'show_disclosure', 'credit', 'app_api'] as $flag) {
             $out[$flag] = empty($input[$flag]) ? 0 : 1;
         }
@@ -173,6 +174,56 @@ class TLDers_DP_Admin
                     </tr>
                 </table>
 
+                <h2><?php esc_html_e('Display', 'tlders-domain-prices'); ?></h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Skin', 'tlders-domain-prices'); ?></th>
+                        <td>
+                            <div class="tlders-skin-picker">
+                                <?php foreach (TLDers_DP_Views::skins() as $value => $label) : ?>
+                                    <label class="tlders-skin-option tlders-swatch-<?php echo esc_attr($value); ?>">
+                                        <input type="radio" name="<?php echo esc_attr($field('skin')); ?>" value="<?php echo esc_attr($value); ?>" <?php checked($s['skin'], $value); ?>>
+                                        <span class="tlders-swatch"></span>
+                                        <span class="tlders-skin-name"><?php echo esc_html($label); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="description"><?php esc_html_e('The look of every price table, card list and search box. Each block, widget or shortcode can override it (skin="midnight"). The mobile app follows it too.', 'tlders-domain-prices'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Currency', 'tlders-domain-prices'); ?></th>
+                        <td class="tlders-currency">
+                            <label><?php esc_html_e('Code', 'tlders-domain-prices'); ?> <input type="text" size="4" maxlength="3" name="<?php echo esc_attr($field('currency_code')); ?>" value="<?php echo esc_attr($s['currency_code']); ?>"></label>
+                            <label><?php esc_html_e('Symbol', 'tlders-domain-prices'); ?> <input type="text" size="4" name="<?php echo esc_attr($field('currency_symbol')); ?>" value="<?php echo esc_attr($s['currency_symbol']); ?>"></label>
+                            <label><?php esc_html_e('1 USD =', 'tlders-domain-prices'); ?> <input type="number" step="any" min="0" name="<?php echo esc_attr($field('currency_rate')); ?>" value="<?php echo esc_attr($s['currency_rate']); ?>"></label>
+                            <label><?php esc_html_e('Decimals', 'tlders-domain-prices'); ?> <input type="number" min="0" max="3" name="<?php echo esc_attr($field('decimals')); ?>" value="<?php echo esc_attr($s['decimals']); ?>"></label>
+                            <p class="description"><?php esc_html_e('TLDers prices are in USD. For INR, set code INR, symbol ₹, your rate (e.g. 84) and 0 decimals.', 'tlders-domain-prices'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="tlders-popular"><?php esc_html_e('Popular TLDs', 'tlders-domain-prices'); ?></label></th>
+                        <td><input id="tlders-popular" type="text" class="large-text" name="<?php echo esc_attr($field('popular_tlds')); ?>" value="<?php echo esc_attr($s['popular_tlds']); ?>">
+                            <p class="description"><?php esc_html_e('Used by [tlders_cheapest] without a tlds="" attribute, and by the mobile app home screen.', 'tlders-domain-prices'); ?></p></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Links', 'tlders-domain-prices'); ?></th>
+                        <td><?php $checkbox('new_tab', __('Open buy links in a new tab', 'tlders-domain-prices')); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="tlders-disclosure"><?php esc_html_e('Affiliate disclosure', 'tlders-domain-prices'); ?></label></th>
+                        <td>
+                            <?php $checkbox('show_disclosure', __('Show this under price tables and search results (once per page)', 'tlders-domain-prices')); ?>
+                            <textarea id="tlders-disclosure" class="large-text" rows="2" name="<?php echo esc_attr($field('disclosure')); ?>"><?php echo esc_textarea($s['disclosure']); ?></textarea>
+                            <p class="description"><?php esc_html_e('Most affiliate programs and advertising rules require a clear disclosure.', 'tlders-domain-prices'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Credit', 'tlders-domain-prices'); ?></th>
+                        <td><?php $checkbox('credit', __('Show a small "Prices by TLDers" link under tables (optional)', 'tlders-domain-prices')); ?></td>
+                    </tr>
+                </table>
+
                 <h2><?php esc_html_e('Your affiliate links', 'tlders-domain-prices'); ?></h2>
                 <p>
                     <?php esc_html_e('Paste the link each registrar\'s affiliate program gives you. Use {domain} where the searched domain goes (example.com), or {sld} and {tld} for its parts. Registrars you leave empty use the option below.', 'tlders-domain-prices'); ?>
@@ -190,7 +241,10 @@ class TLDers_DP_Admin
                     <p class="notice notice-warning inline"><?php esc_html_e('Could not load the registrar list from TLDers. Reload the page to try again.', 'tlders-domain-prices'); ?></p>
                 <?php else : ?>
                     <p><input type="search" id="tlders-registrar-filter" class="regular-text" placeholder="<?php esc_attr_e('Filter registrars…', 'tlders-domain-prices'); ?>">
-                        <label><input type="checkbox" id="tlders-registrar-mine"> <?php esc_html_e('Only ones with my link', 'tlders-domain-prices'); ?></label></p>
+                        <label><input type="checkbox" id="tlders-registrar-mine" <?php checked(!empty($s['links'])); ?>> <?php
+                            /* translators: %d: number of registrars with the owner's link */
+                            echo esc_html(sprintf(__('Only ones with my link (%d)', 'tlders-domain-prices'), count($s['links'])));
+                        ?></label></p>
                     <table class="widefat striped tlders-links" id="tlders-registrar-links">
                         <thead><tr>
                             <th><?php esc_html_e('Registrar', 'tlders-domain-prices'); ?></th>
@@ -226,41 +280,6 @@ class TLDers_DP_Admin
                     <?php endforeach; ?>
                 <?php endif; ?>
 
-                <h2><?php esc_html_e('Display', 'tlders-domain-prices'); ?></h2>
-                <table class="form-table" role="presentation">
-                    <tr>
-                        <th scope="row"><?php esc_html_e('Currency', 'tlders-domain-prices'); ?></th>
-                        <td class="tlders-currency">
-                            <label><?php esc_html_e('Code', 'tlders-domain-prices'); ?> <input type="text" size="4" maxlength="3" name="<?php echo esc_attr($field('currency_code')); ?>" value="<?php echo esc_attr($s['currency_code']); ?>"></label>
-                            <label><?php esc_html_e('Symbol', 'tlders-domain-prices'); ?> <input type="text" size="4" name="<?php echo esc_attr($field('currency_symbol')); ?>" value="<?php echo esc_attr($s['currency_symbol']); ?>"></label>
-                            <label><?php esc_html_e('1 USD =', 'tlders-domain-prices'); ?> <input type="number" step="any" min="0" name="<?php echo esc_attr($field('currency_rate')); ?>" value="<?php echo esc_attr($s['currency_rate']); ?>"></label>
-                            <label><?php esc_html_e('Decimals', 'tlders-domain-prices'); ?> <input type="number" min="0" max="3" name="<?php echo esc_attr($field('decimals')); ?>" value="<?php echo esc_attr($s['decimals']); ?>"></label>
-                            <p class="description"><?php esc_html_e('TLDers prices are in USD. For INR, set code INR, symbol ₹, your rate (e.g. 84) and 0 decimals.', 'tlders-domain-prices'); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="tlders-popular"><?php esc_html_e('Popular TLDs', 'tlders-domain-prices'); ?></label></th>
-                        <td><input id="tlders-popular" type="text" class="large-text" name="<?php echo esc_attr($field('popular_tlds')); ?>" value="<?php echo esc_attr($s['popular_tlds']); ?>">
-                            <p class="description"><?php esc_html_e('Used by [tlders_cheapest] without a tlds="" attribute, and by the mobile app home screen.', 'tlders-domain-prices'); ?></p></td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e('Links', 'tlders-domain-prices'); ?></th>
-                        <td><?php $checkbox('new_tab', __('Open buy links in a new tab', 'tlders-domain-prices')); ?></td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="tlders-disclosure"><?php esc_html_e('Affiliate disclosure', 'tlders-domain-prices'); ?></label></th>
-                        <td>
-                            <?php $checkbox('show_disclosure', __('Show this under price tables and search results (once per page)', 'tlders-domain-prices')); ?>
-                            <textarea id="tlders-disclosure" class="large-text" rows="2" name="<?php echo esc_attr($field('disclosure')); ?>"><?php echo esc_textarea($s['disclosure']); ?></textarea>
-                            <p class="description"><?php esc_html_e('Most affiliate programs and advertising rules require a clear disclosure.', 'tlders-domain-prices'); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php esc_html_e('Credit', 'tlders-domain-prices'); ?></th>
-                        <td><?php $checkbox('credit', __('Show a small "Prices by TLDers" link under tables (optional)', 'tlders-domain-prices')); ?></td>
-                    </tr>
-                </table>
-
                 <h2><?php esc_html_e('Mobile app API', 'tlders-domain-prices'); ?></h2>
                 <table class="form-table" role="presentation">
                     <tr>
@@ -293,6 +312,7 @@ class TLDers_DP_Admin
                 <tr><td><code>[tlders_table tld="io" limit="10"]</code></td><td><?php esc_html_e('Registrar comparison table. Options: show="register,renew,transfer", domain="mybrand.io".', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_cheapest tlds="com,net,io"]</code></td><td><?php esc_html_e('Cheapest registrar for each TLD. Without tlds="" it uses your popular TLDs. Option: type="renew".', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_search page="12"]</code></td><td><?php esc_html_e('Search box only, sending visitors to page 12 (a page with a plain [tlders_search]) for results. Use it in sidebars and headers.', 'tlders-domain-prices'); ?></td></tr>
+                <tr><td><code>skin="aurora"</code></td><td><?php esc_html_e('Any shortcode: theme, aurora, midnight, fresh, sunset or minimal. Overrides the skin chosen above.', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_search]</code></td><td><?php esc_html_e('A search box. Visitors type a domain and see where it is cheapest to register. Options: limit="10", show="register,renew".', 'tlders-domain-prices'); ?></td></tr>
                 </tbody>
             </table>

@@ -12,6 +12,9 @@
   var viewOptions = Object.keys(data.views).map(function (key) {
     return { value: key, label: data.views[key] };
   });
+  var skinOptions = [{ value: '', label: __('Site default (Settings)', 'tlders-domain-prices') }].concat(
+    Object.keys(data.skins || {}).map(function (key) { return { value: key, label: data.skins[key] }; })
+  );
   var pageOptions = [{ value: 0, label: __('— Same page —', 'tlders-domain-prices') }].concat(
     data.pages.map(function (p) { return { value: p.id, label: p.title }; })
   );
@@ -29,6 +32,9 @@
       var fields = [
         el(c.SelectControl, { key: 'view', label: __('Show', 'tlders-domain-prices'), value: a.view, options: viewOptions, onChange: set('view') }),
       ];
+      if (a.view !== 'price') {
+        fields.push(el(c.SelectControl, { key: 'skin', label: __('Skin', 'tlders-domain-prices'), value: a.skin, options: skinOptions, onChange: set('skin') }));
+      }
       if (a.view === 'table' || a.view === 'price') {
         fields.push(el(c.TextControl, { key: 'tld', label: __('Extension', 'tlders-domain-prices'), help: __('e.g. com, io, in', 'tlders-domain-prices'), value: a.tld, onChange: set('tld') }));
       }

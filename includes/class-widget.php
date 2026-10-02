@@ -10,6 +10,19 @@ if (!defined('ABSPATH')) {
  */
 class TLDers_DP_Views
 {
+    /** Skin names for the Settings screen, the widget and the block. */
+    public static function skins()
+    {
+        return [
+            'theme' => __('Theme (blends into your site)', 'tlders-domain-prices'),
+            'aurora' => __('Aurora (indigo to pink)', 'tlders-domain-prices'),
+            'midnight' => __('Midnight (dark, neon)', 'tlders-domain-prices'),
+            'fresh' => __('Fresh (mint and teal)', 'tlders-domain-prices'),
+            'sunset' => __('Sunset (orange to pink)', 'tlders-domain-prices'),
+            'minimal' => __('Minimal (clean, blue)', 'tlders-domain-prices'),
+        ];
+    }
+
     public static function labels()
     {
         return [
@@ -30,6 +43,8 @@ class TLDers_DP_Views
             'aria-label' => true, 'maxlength' => true, 'required' => true, 'class' => true,
         ];
         $allowed['button'] = ['type' => true, 'class' => true];
+        $allowed['span']['style'] = true;
+        $allowed['i'] = ['style' => true];
         return $allowed;
     }
 
@@ -41,17 +56,18 @@ class TLDers_DP_Views
     {
         $tld = isset($opts['tld']) && $opts['tld'] !== '' ? $opts['tld'] : 'com';
         $limit = isset($opts['limit']) ? max(1, (int) $opts['limit']) : 5;
+        $skin = isset($opts['skin']) ? (string) $opts['skin'] : '';
         switch ($view) {
             case 'search':
-                return TLDers_DP_Shortcodes::search(['page' => isset($opts['page']) ? (int) $opts['page'] : 0, 'limit' => $limit]);
+                return TLDers_DP_Shortcodes::search(['page' => isset($opts['page']) ? (int) $opts['page'] : 0, 'limit' => $limit, 'skin' => $skin]);
             case 'table':
-                return TLDers_DP_Shortcodes::table(['tld' => $tld, 'limit' => $limit, 'show' => 'register,renew']);
+                return TLDers_DP_Shortcodes::table(['tld' => $tld, 'limit' => $limit, 'show' => 'register,renew', 'skin' => $skin]);
             case 'price':
                 return TLDers_DP_Shortcodes::price(['tld' => $tld]);
             case 'cheapest':
             default:
                 $atts = isset($opts['tlds']) && trim($opts['tlds']) !== '' ? ['tlds' => $opts['tlds']] : [];
-                return TLDers_DP_Shortcodes::cheapest($atts);
+                return TLDers_DP_Shortcodes::cheapest($atts + ['skin' => $skin]);
         }
     }
 }
@@ -59,7 +75,7 @@ class TLDers_DP_Views
 /** Appearance → Widgets: "TLDers Domain Prices" for classic-theme sidebars. */
 class TLDers_DP_Widget extends WP_Widget
 {
-    const DEFAULTS = ['title' => '', 'view' => 'cheapest', 'tld' => 'com', 'tlds' => '', 'limit' => 5, 'page' => 0];
+    const DEFAULTS = ['title' => '', 'view' => 'cheapest', 'tld' => 'com', 'tlds' => '', 'limit' => 5, 'page' => 0, 'skin' => ''];
 
     public function __construct()
     {
@@ -100,6 +116,7 @@ class TLDers_DP_Widget extends WP_Widget
             'tlds' => implode(', ', TLDers\Sdk\Client::normalizeList(isset($new['tlds']) ? $new['tlds'] : '')),
             'limit' => max(1, min(50, isset($new['limit']) ? (int) $new['limit'] : 5)),
             'page' => isset($new['page']) ? absint($new['page']) : 0,
+            'skin' => isset($new['skin'], TLDers_DP_Views::skins()[$new['skin']]) ? $new['skin'] : '',
         ];
     }
 
@@ -116,6 +133,15 @@ class TLDers_DP_Widget extends WP_Widget
             <select class="widefat" id="<?php echo esc_attr($this->get_field_id('view')); ?>" name="<?php echo esc_attr($this->get_field_name('view')); ?>">
                 <?php foreach (TLDers_DP_Views::labels() as $value => $label) : ?>
                     <option value="<?php echo esc_attr($value); ?>" <?php selected($i['view'], $value); ?>><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </p>
+        <p>
+            <label for="<?php echo esc_attr($this->get_field_id('skin')); ?>"><?php esc_html_e('Skin:', 'tlders-domain-prices'); ?></label>
+            <select class="widefat" id="<?php echo esc_attr($this->get_field_id('skin')); ?>" name="<?php echo esc_attr($this->get_field_name('skin')); ?>">
+                <option value=""><?php esc_html_e('— Site default (Settings) —', 'tlders-domain-prices'); ?></option>
+                <?php foreach (TLDers_DP_Views::skins() as $value => $label) : ?>
+                    <option value="<?php echo esc_attr($value); ?>" <?php selected($i['skin'], $value); ?>><?php echo esc_html($label); ?></option>
                 <?php endforeach; ?>
             </select>
         </p>

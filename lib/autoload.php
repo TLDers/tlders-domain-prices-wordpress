@@ -12,6 +12,7 @@ if (!class_exists('TLDers\\Sdk\\Client', false)) {
     require __DIR__ . '/src/Cache.php';
     require __DIR__ . '/src/Client.php';
     require __DIR__ . '/src/Links.php';
+    require __DIR__ . '/src/Insights.php';
     require __DIR__ . '/src/AppApi.php';
     // Not bundled in the WordPress plugin, which uses wp_remote_get and transients instead.
     foreach (['CurlTransport', 'FileCache'] as $tlders_sdk_optional) {

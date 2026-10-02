@@ -1,91 +1,146 @@
-/* TLDers Domain Prices — inherits the theme's fonts and colours; override any
-   of these custom properties in your theme's CSS. */
+/* TLDers Domain Prices. Every block is <div class="tlders tlders-skin-NAME">.
+   "theme" borrows the site's fonts and colours; the others are styled skins.
+   Override any variable in your theme, e.g. .tlders { --tlders-accent: #e11d48; } */
+
 .tlders {
-  --tlders-accent: #0f766e;
-  --tlders-accent-text: #fff;
-  --tlders-border: rgba(127, 127, 127, 0.25);
-  --tlders-best: rgba(15, 118, 110, 0.08);
-  --tlders-muted: rgba(127, 127, 127, 0.9);
-  /* Lay out by the space we're given, not the screen: a sidebar is narrow even on desktop. */
+  --tlders-accent: var(--wp--preset--color--primary, #2563eb);
+  --tlders-accent-2: color-mix(in srgb, var(--tlders-accent) 65%, #ffffff);
+  --tlders-on-accent: #ffffff;
+  --tlders-card: color-mix(in srgb, currentColor 3%, transparent);
+  --tlders-surface: color-mix(in srgb, currentColor 6%, transparent);
+  --tlders-border: color-mix(in srgb, currentColor 15%, transparent);
+  --tlders-text: inherit;
+  --tlders-muted: color-mix(in srgb, currentColor 62%, transparent);
+  --tlders-hero: var(--tlders-surface);
+  --tlders-hero-text: inherit;
+  --tlders-radius: 12px;
+  --tlders-shadow: none;
+  --tlders-good: #059669;
+  --tlders-warn: #b45309;
+  --tlders-warn-bg: #fef3c7;
+  --tlders-input: #14161b;
   container: tlders / inline-size;
   margin: 1.5em 0;
+  color: var(--tlders-text);
 }
-.widget .tlders,
-.wp-block-widget-area .tlders { margin: 0; }
+.widget .tlders, .wp-block-widget-area .tlders { margin: 0; }
 
-.tlders-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
+.tlders-skin-aurora {
+  --tlders-accent: #7c3aed; --tlders-accent-2: #ec4899; --tlders-card: #ffffff; --tlders-surface: #f3f0fd;
+  --tlders-border: #e6e1fa; --tlders-text: #1b1531; --tlders-muted: #625b80; --tlders-radius: 18px;
+  --tlders-hero: radial-gradient(600px 260px at 10% -20%, #a78bfa, transparent 60%), radial-gradient(500px 260px at 100% 0%, #f472b6, transparent 55%), linear-gradient(135deg, #4f46e5, #7c3aed 50%, #db2777);
+  --tlders-hero-text: #ffffff; --tlders-shadow: 0 10px 28px -14px rgba(79, 70, 229, .35), 0 2px 6px rgba(27, 21, 49, .05);
 }
-.tlders-table th,
-.tlders-table td {
-  padding: 0.6em 0.75em;
-  border-bottom: 1px solid var(--tlders-border);
-  text-align: left;
-  vertical-align: middle;
+.tlders-skin-midnight {
+  --tlders-accent: #22d3ee; --tlders-accent-2: #a3e635; --tlders-on-accent: #04121a; --tlders-card: #121a30; --tlders-surface: #0e1528;
+  --tlders-border: #222c47; --tlders-text: #e7eaf3; --tlders-muted: #94a0bd; --tlders-radius: 14px;
+  --tlders-hero: radial-gradient(500px 240px at 85% 0%, rgba(34, 211, 238, .28), transparent 60%), radial-gradient(500px 240px at 0% 100%, rgba(163, 230, 53, .16), transparent 60%), #0b1124;
+  --tlders-hero-text: #ffffff; --tlders-shadow: 0 12px 30px -16px rgba(0, 0, 0, .8);
+  --tlders-good: #a3e635; --tlders-warn: #fbbf24; --tlders-warn-bg: rgba(251, 191, 36, .14);
+  background: #090d1a; padding: 18px; border-radius: 20px;
 }
-.tlders-table th { font-weight: 600; }
-.tlders-table .tlders-num { text-align: right; white-space: nowrap; }
-.tlders-table .tlders-buy { text-align: right; width: 1%; white-space: nowrap; }
-.tlders-table .tlders-tld { font-weight: 600; }
-.tlders-table tr.tlders-best td { background: var(--tlders-best); }
-
-.tlders-button {
-  display: inline-block;
-  padding: 0.35em 0.9em;
-  border-radius: 6px;
-  background: var(--tlders-accent);
-  color: var(--tlders-accent-text) !important;
-  text-decoration: none !important;
-  font-weight: 600;
-  line-height: 1.4;
+.tlders-skin-fresh {
+  --tlders-accent: #059669; --tlders-accent-2: #14b8a6; --tlders-card: #ffffff; --tlders-surface: #e7f6ee;
+  --tlders-border: #d5ece0; --tlders-text: #10241b; --tlders-muted: #557264; --tlders-radius: 22px;
+  --tlders-hero: radial-gradient(500px 240px at 0% 0%, #a7f3d0, transparent 60%), radial-gradient(500px 240px at 100% 20%, #a5f3fc, transparent 55%), #ecfdf5;
+  --tlders-hero-text: #0b2a1e; --tlders-shadow: 0 8px 24px -14px rgba(5, 150, 105, .45);
 }
-.tlders-button:hover,
-.tlders-button:focus-visible { filter: brightness(1.1); }
-
-.tlders-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5em; margin-bottom: 1em; }
-.tlders-search input[type="search"] { width: 100%; min-width: 0; box-sizing: border-box; padding: 0.6em 0.75em; }
-.tlders-search button { padding: 0.6em 1.2em; background: var(--tlders-accent); color: var(--tlders-accent-text); border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
-
-.tlders-heading { margin: 0.5em 0; }
-.tlders-note,
-.tlders-foot { color: var(--tlders-muted); font-size: 0.875em; }
-.tlders-foot { margin-top: 0.5em; }
-
-/* Narrow spaces (phones, sidebars): each row becomes a card — name and prices
-   stacked on the left, Buy on the right — so Buy never scrolls out of view. */
-@container tlders (max-width: 520px) {
-  .tlders-table thead { display: none; }
-  .tlders-table,
-  .tlders-table tbody { display: block; width: 100%; }
-  .tlders-table tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 1em;
-    align-items: center;
-    padding: 0.6em 0.5em;
-    border-bottom: 1px solid var(--tlders-border);
-  }
-  .tlders-table tr.tlders-best { background: var(--tlders-best); }
-  .tlders-table tr.tlders-best td { background: none; }
-  .tlders-table td {
-    grid-column: 1;
-    border: 0;
-    padding: 0;
-    width: auto;
-    text-align: left;
-    white-space: normal;
-  }
-  .tlders-table .tlders-name,
-  .tlders-table .tlders-tld { font-weight: 600; }
-  .tlders-table .tlders-buy { grid-column: 2; grid-row: 1 / span 4; text-align: right; }
-  .tlders-table .tlders-num { text-align: left; font-size: 0.9em; white-space: normal; }
-  .tlders-table .tlders-button { padding: 0.3em 0.75em; }
-  .tlders-table .tlders-num[data-label]::before { content: attr(data-label) " "; color: var(--tlders-muted); }
+.tlders-skin-sunset {
+  --tlders-accent: #ea580c; --tlders-accent-2: #db2777; --tlders-card: #ffffff; --tlders-surface: #fff1e8;
+  --tlders-border: #f7e1d3; --tlders-text: #2a160c; --tlders-muted: #7a5a4a; --tlders-radius: 16px;
+  --tlders-hero: radial-gradient(500px 260px at 100% 0%, #fb7185, transparent 60%), linear-gradient(120deg, #f97316, #ef4444 55%, #db2777);
+  --tlders-hero-text: #ffffff; --tlders-shadow: 0 10px 28px -14px rgba(234, 88, 12, .45);
+}
+.tlders-skin-minimal {
+  --tlders-accent: #2563eb; --tlders-accent-2: #0ea5e9; --tlders-card: #ffffff; --tlders-surface: #f4f6fa;
+  --tlders-border: #e4e6eb; --tlders-text: #14161b; --tlders-muted: #5e6573; --tlders-radius: 12px;
+  --tlders-hero: linear-gradient(180deg, #f4f7fd, #ffffff); --tlders-hero-text: #14161b;
+  --tlders-shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
 }
 
-/* Very narrow spaces (most sidebars): the button goes under the search box. */
+/* ── Buttons, badges, avatars, bars ─────────────────────────────────── */
+.tlders .tlders-button, .tlders .tlders-search button {
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; font-weight: 650; line-height: 1.3;
+  padding: .5em 1.05em; border: 0; border-radius: calc(var(--tlders-radius) * .6); cursor: pointer;
+  color: var(--tlders-on-accent) !important; text-decoration: none !important;
+  background: linear-gradient(135deg, var(--tlders-accent), color-mix(in srgb, var(--tlders-accent) 65%, var(--tlders-accent-2)));
+  box-shadow: 0 6px 16px -9px var(--tlders-accent); transition: transform .12s ease, filter .12s ease;
+}
+.tlders .tlders-button:hover, .tlders .tlders-search button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.tlders-badge { display: inline-block; font-size: .72em; font-weight: 700; padding: .25em .7em; border-radius: 999px; white-space: nowrap; line-height: 1.4; }
+.tlders-save { color: var(--tlders-good); background: color-mix(in srgb, var(--tlders-good) 14%, transparent); }
+.tlders-best { color: var(--tlders-on-accent); background: linear-gradient(135deg, var(--tlders-accent), var(--tlders-accent-2)); margin-left: .5em; vertical-align: middle; }
+.tlders-warn { color: var(--tlders-warn); background: var(--tlders-warn-bg); }
+.tlders-avatar { flex: none; width: 2.1em; height: 2.1em; border-radius: .6em; display: inline-grid; place-items: center; font-weight: 800; font-size: .8em; line-height: 1; }
+.tlders-bar { display: block; height: 5px; border-radius: 999px; background: var(--tlders-surface); overflow: hidden; margin-top: .35em; max-width: 160px; }
+.tlders-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--tlders-accent), var(--tlders-accent-2)); }
+.tlders-muted, .tlders-note, .tlders-foot { color: var(--tlders-muted); }
+.tlders-note, .tlders-foot { font-size: .85em; }
+.tlders-foot { margin: .8em 0 0; }
+
+/* ── Search hero ─────────────────────────────────────────────────────── */
+.tlders-hero { background: var(--tlders-hero); color: var(--tlders-hero-text); border-radius: calc(var(--tlders-radius) + 4px); padding: 1.6em 1.4em; margin-bottom: 1em; }
+.tlders-hero.tlders-compact { padding: 1em; }
+.tlders-hero-title { margin: 0 0 .7em !important; font-size: 1.35em; font-weight: 800; line-height: 1.2; color: inherit; }
+.tlders-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4em; padding: .35em; margin: 0; background: #ffffff; border-radius: calc(var(--tlders-radius) * .75); box-shadow: 0 14px 34px -18px rgba(0, 0, 0, .5); }
+.tlders-skin-theme .tlders-search { background: var(--tlders-card); box-shadow: 0 0 0 1px var(--tlders-border); }
+.tlders-skin-theme { --tlders-input: inherit; }
+.tlders-skin-midnight { --tlders-input: #e7eaf3; }
+.tlders-skin-midnight .tlders-search { background: #10172b; box-shadow: 0 0 0 1px #222c47; }
+.tlders .tlders-search input[type="search"] { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--tlders-input); padding: .6em .7em; font-size: 1em; box-shadow: none; outline: none; }
+.tlders-heading { margin: .4em 0 .6em; }
+
+/* ── Stats ───────────────────────────────────────────────────────────── */
+.tlders-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6em; margin-bottom: .9em; }
+.tlders-stat { background: var(--tlders-card); border: 1px solid var(--tlders-border); border-radius: var(--tlders-radius); padding: .7em .9em; box-shadow: var(--tlders-shadow); }
+.tlders-stat span { display: block; font-size: .72em; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--tlders-muted); }
+.tlders-stat strong { display: block; font-size: 1.25em; }
+.tlders-stat.tlders-hl { background: linear-gradient(135deg, var(--tlders-accent), var(--tlders-accent-2)); border-color: transparent; color: var(--tlders-on-accent); }
+.tlders-stat.tlders-hl span { color: inherit; opacity: .85; }
+
+/* ── Offer cards ─────────────────────────────────────────────────────── */
+.tlders-offers { display: flex; flex-direction: column; gap: .55em; }
+.tlders-offer { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)) auto; align-items: center; gap: .9em;
+  background: var(--tlders-card); border: 1px solid var(--tlders-border); border-radius: var(--tlders-radius); padding: .8em 1em; box-shadow: var(--tlders-shadow); }
+.tlders-offer.tlders-is-best { border-color: color-mix(in srgb, var(--tlders-accent) 55%, var(--tlders-border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--tlders-accent) 35%, transparent), 0 12px 28px -18px var(--tlders-accent); }
+.tlders-offer.tlders-cols-1 { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto; }
+.tlders-offer.tlders-cols-2 { grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) auto; }
+.tlders-who { display: flex; align-items: center; gap: .7em; min-width: 0; }
+.tlders-who strong { vertical-align: middle; }
+.tlders-cell { min-width: 0; }
+.tlders-lbl { display: block; font-size: .7em; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--tlders-muted); }
+.tlders-cell b { font-variant-numeric: tabular-nums; font-size: 1.02em; }
+.tlders-cell.tlders-main b { font-size: 1.18em; }
+.tlders-cell .tlders-badge { display: table; margin-top: .3em; }
+
+/* ── Extension cards ─────────────────────────────────────────────────── */
+.tlders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .7em; }
+.tlders-card { position: relative; display: flex; flex-direction: column; gap: .35em; background: var(--tlders-card); border: 1px solid var(--tlders-border); border-radius: var(--tlders-radius); padding: 1em; box-shadow: var(--tlders-shadow); }
+.tlders-ext { font-size: 1.55em; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.tlders-from { font-size: .78em; color: var(--tlders-muted); margin-top: .3em; }
+.tlders-big { font-size: 1.4em; font-weight: 800; line-height: 1.1; }
+.tlders-at { display: flex; align-items: center; gap: .5em; font-size: .88em; color: var(--tlders-muted); margin: .2em 0 .4em; }
+.tlders-card-foot { display: flex; align-items: center; justify-content: space-between; gap: .5em; margin-top: auto; flex-wrap: wrap; font-size: .9em; }
+.tlders-card-head { display: flex; align-items: center; justify-content: space-between; gap: .4em; flex-wrap: wrap; }
+
+/* ── Inline price ────────────────────────────────────────────────────── */
+a.tlders-price { font-weight: 650; }
+
+/* ── Narrow spaces (phones, sidebars) ────────────────────────────────── */
+@container tlders (max-width: 560px) {
+  .tlders-offer, .tlders-offer.tlders-cols-1, .tlders-offer.tlders-cols-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: .55em .8em; }
+  .tlders-who { grid-column: 1 / 3; grid-row: 1; }
+  .tlders-offer .tlders-button { grid-column: 3; grid-row: 1; }
+  .tlders-cell { grid-row: 2; }
+  .tlders-cell:nth-of-type(n+4) { display: none; } /* div 1 is the registrar; keep two price columns */
+  .tlders-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4em; }
+  .tlders-stat { padding: .55em .6em; }
+  .tlders-stat strong { font-size: 1.05em; }
+  .tlders-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
 @container tlders (max-width: 340px) {
   .tlders-search { grid-template-columns: minmax(0, 1fr); }
+  .tlders-stats { grid-template-columns: minmax(0, 1fr); }
+  .tlders-grid { grid-template-columns: minmax(0, 1fr); }
+  .tlders-skin-midnight { padding: 12px; }
 }

@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 use TLDers\Sdk\Client;
+use TLDers\Sdk\Insights;
 
 /**
  * [tlders_price tld="com"]                       "$9.58 at Namecheap", linked
@@ -13,11 +14,14 @@ use TLDers\Sdk\Client;
  * [tlders_search]                                search box; shows the table for what was typed
  * [tlders_search page="12"]                      search box only, sending visitors to page 12 for results
  *                                                (for sidebars: page 12 holds a plain [tlders_search])
+ * Every shortcode also takes skin="theme|aurora|midnight|fresh|sunset|minimal" (default: Settings).
  */
 class TLDers_DP_Shortcodes
 {
     const QUERY_VAR = 'tlders_q';
     const TYPES = ['register', 'renew', 'transfer'];
+    /** "theme" blends into the site's theme; the others are the shared TLDers skins. */
+    const SKINS = ['theme', 'aurora', 'midnight', 'fresh', 'sunset', 'minimal'];
 
     /** @var TLDers_DP_Plugin */
     private static $plugin;
@@ -61,44 +65,69 @@ class TLDers_DP_Shortcodes
 
     public static function table($atts)
     {
-        $a = shortcode_atts(['tld' => 'com', 'domain' => '', 'limit' => 10, 'show' => 'register,renew,transfer'], $atts, 'tlders_table');
+        $a = shortcode_atts(['tld' => 'com', 'domain' => '', 'limit' => 10, 'show' => 'register,renew,transfer', 'stats' => 'yes', 'skin' => ''], $atts, 'tlders_table');
         $tld = Client::normalizeTld($a['tld']);
         $domain = sanitize_text_field($a['domain']);
-        return self::render_table($tld, $domain, (int) $a['limit'], self::columns($a['show']));
+        $skin = self::skin($a['skin']);
+        $html = self::render_offers($tld, $domain, (int) $a['limit'], self::columns($a['show']), $a['stats'] !== 'no', $skin);
+        return $html === '' ? self::unavailable() : self::wrap($html, $skin);
     }
 
     public static function cheapest($atts)
     {
-        $a = shortcode_atts(['tlds' => self::$plugin->settings()['popular_tlds'], 'type' => 'register'], $atts, 'tlders_cheapest');
+        $a = shortcode_atts(['tlds' => self::$plugin->settings()['popular_tlds'], 'type' => 'register', 'skin' => ''], $atts, 'tlders_cheapest');
         $type = in_array($a['type'], self::TYPES, true) ? $a['type'] : 'register';
+        $skin = self::skin($a['skin']);
         $currency = self::$plugin->currency();
-        $rows = '';
+        $cards = '';
         foreach (array_slice(Client::normalizeList($a['tlds']), 0, 50) as $tld) {
-            $best = null;
-            foreach (self::offers($tld) as $o) {
-                if ($o[$type] !== null && ($best === null || $o[$type] < $best[$type])) {
-                    $best = $o;
-                }
-            }
-            if ($best === null) {
+            $summary = Insights::summary(self::offers($tld), $type);
+            $o = $summary['cheapest'];
+            if ($o === null) {
                 continue;
             }
-            $rows .= '<tr><td class="tlders-tld">.' . esc_html($tld) . '</td>'
-                . '<td class="tlders-num" data-label="' . esc_attr(self::label($type)) . '">' . esc_html($currency->format($best[$type])) . '</td>'
-                . '<td class="tlders-at">' . esc_html($best['name']) . '</td>'
-                . '<td class="tlders-buy">' . self::link($best['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</td></tr>';
+            $renew = $o['renew'] !== null
+                ? '<span class="' . (Insights::renewJump($o) ? 'tlders-badge tlders-warn' : 'tlders-muted') . '">' . esc_html(sprintf(
+                    /* translators: %s: renewal price */
+                    __('Renews %s', 'tlders-domain-prices'),
+                    $currency->format($o['renew'])
+                )) . '</span>'
+                : '<span></span>';
+            $cards .= '<div class="tlders-card"><div class="tlders-card-head">'
+                . '<span class="tlders-ext">.' . esc_html($tld) . '</span>'
+                . ($summary['savingPct'] ? '<span class="tlders-badge tlders-save">' . esc_html(sprintf(
+                    /* translators: %d: percentage saved */
+                    __('Save %d%%', 'tlders-domain-prices'),
+                    $summary['savingPct']
+                )) . '</span>' : '')
+                . '</div>'
+                . '<div class="tlders-from">' . esc_html(self::label($type)) . '</div>'
+                . '<div class="tlders-big">' . esc_html($currency->format($o[$type])) . '</div>'
+                . '<div class="tlders-at">' . self::avatar($o, $skin) . '<span>' . esc_html(sprintf(
+                    /* translators: %s: registrar name */
+                    __('at %s', 'tlders-domain-prices'),
+                    $o['name']
+                )) . '</span></div>'
+                . '<div class="tlders-card-foot">' . $renew . self::link($o['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</div>'
+                . '</div>';
         }
-        if ($rows === '') {
+        if ($cards === '') {
             return self::unavailable();
         }
-        $head = '<tr><th>' . esc_html__('Extension', 'tlders-domain-prices') . '</th><th class="tlders-num">' . esc_html(self::label($type)) . '</th><th>'
-            . esc_html__('Cheapest at', 'tlders-domain-prices') . '</th><th></th></tr>';
-        return self::wrap('<table class="tlders-table"><thead>' . $head . '</thead><tbody>' . $rows . '</tbody></table>');
+        return self::wrap('<div class="tlders-grid">' . $cards . '</div>', $skin);
     }
 
     public static function search($atts)
     {
-        $a = shortcode_atts(['placeholder' => __('Search a domain, e.g. mybrand.com', 'tlders-domain-prices'), 'limit' => 10, 'show' => 'register,renew', 'page' => 0], $atts, 'tlders_search');
+        $a = shortcode_atts([
+            'placeholder' => __('e.g. mybrand.com', 'tlders-domain-prices'),
+            'title' => __('Find the cheapest place to register your domain', 'tlders-domain-prices'),
+            'limit' => 10,
+            'show' => 'register,renew',
+            'page' => 0,
+            'skin' => '',
+        ], $atts, 'tlders_search');
+        $skin = self::skin($a['skin']);
         // With a results page set, this is just a form (e.g. in a sidebar) that
         // sends visitors there, so results never show twice on that page.
         $resultsPage = (int) $a['page'] > 0 ? get_permalink((int) $a['page']) : false;
@@ -120,9 +149,14 @@ class TLDers_DP_Shortcodes
             . '<input type="search" name="' . esc_attr(self::QUERY_VAR) . '" value="' . esc_attr($resultsPage ? '' : $query) . '" placeholder="' . esc_attr($a['placeholder']) . '" aria-label="' . esc_attr__('Domain or extension', 'tlders-domain-prices') . '" maxlength="253" required>'
             . '<button type="submit">' . esc_html__('Compare prices', 'tlders-domain-prices') . '</button></form>';
 
+        // The search box sits in a hero panel; in a sidebar (results on another page) it's compact.
+        $panel = '<div class="tlders-hero' . ($resultsPage ? ' tlders-compact' : '') . '">'
+            . (!$resultsPage && trim($a['title']) !== '' ? '<p class="tlders-hero-title">' . esc_html($a['title']) . '</p>' : '')
+            . $form . '</div>';
+
         if ($query === '' || $resultsPage) {
             wp_enqueue_style('tlders-dp');
-            return '<div class="tlders">' . $form . '</div>';
+            return '<div class="tlders tlders-skin-' . esc_attr($skin) . '">' . $panel . '</div>';
         }
 
         $client = self::$plugin->client();
@@ -142,9 +176,10 @@ class TLDers_DP_Shortcodes
                 __('Prices for %s', 'tlders-domain-prices'),
                 $domain !== '' ? $domain : '.' . $tld
             )) . '</h3>';
-            $result = $heading . self::render_table($tld, $domain, (int) $a['limit'], self::columns($a['show']), false);
+            $offers = self::render_offers($tld, $domain, (int) $a['limit'], self::columns($a['show']), true, $skin);
+            $result = $heading . ($offers !== '' ? $offers : '<p class="tlders-note">' . esc_html__('No prices found.', 'tlders-domain-prices') . '</p>');
         }
-        return self::wrap($form . $result);
+        return self::wrap($panel . $result, $skin);
     }
 
     // ── helpers ────────────────────────────────────────────────────────────
@@ -158,28 +193,68 @@ class TLDers_DP_Shortcodes
         return self::$plugin->links()->attach(self::$plugin->client()->offers($tld), $tld, $domain);
     }
 
-    private static function render_table($tld, $domain, $limit, array $columns, $wrap = true)
+    /** Summary stats + one card per registrar; '' when there are no prices. */
+    private static function render_offers($tld, $domain, $limit, array $columns, $stats, $skin)
     {
         $offers = array_slice(self::offers($tld, $domain), 0, max(1, min(100, $limit)));
         if (!$offers) {
-            return $wrap ? self::unavailable() : '<p class="tlders-note">' . esc_html__('No prices found.', 'tlders-domain-prices') . '</p>';
+            return '';
         }
         $currency = self::$plugin->currency();
-        $head = '<th>' . esc_html__('Registrar', 'tlders-domain-prices') . '</th>';
-        foreach ($columns as $col) {
-            $head .= '<th class="tlders-num">' . esc_html(self::label($col)) . '</th>';
+        $summary = Insights::summary($offers);
+        $bars = Insights::bars($offers, $columns[0]);
+        $html = '';
+        if ($stats && $summary['cheapest']) {
+            $html .= '<div class="tlders-stats">'
+                . self::stat(__('Best price', 'tlders-domain-prices'), $currency->format($summary['cheapest']['register']), true)
+                . self::stat(__('Average', 'tlders-domain-prices'), $currency->format($summary['average']))
+                . self::stat(__('You save', 'tlders-domain-prices'), $summary['savingPct'] ? $summary['savingPct'] . '%' : '—')
+                . '</div>';
         }
-        $head .= '<th></th>';
-        $rows = '';
+        $html .= '<div class="tlders-offers">';
         foreach ($offers as $i => $o) {
-            $rows .= '<tr' . ($i === 0 ? ' class="tlders-best"' : '') . '><td class="tlders-name">' . esc_html($o['name']) . '</td>';
-            foreach ($columns as $col) {
-                $rows .= '<td class="tlders-num" data-label="' . esc_attr(self::label($col)) . '">' . esc_html($currency->format($o[$col])) . '</td>';
+            $best = $summary['cheapest'] && $o['slug'] === $summary['cheapest']['slug'];
+            $html .= '<div class="tlders-offer tlders-cols-' . count($columns) . ($best ? ' tlders-is-best' : '') . '">'
+                . '<div class="tlders-who">' . self::avatar($o, $skin) . '<div><strong>' . esc_html($o['name']) . '</strong>'
+                . ($best ? '<span class="tlders-badge tlders-best">' . esc_html__('Best price', 'tlders-domain-prices') . '</span>' : '')
+                . '</div></div>';
+            foreach ($columns as $c => $col) {
+                $html .= '<div class="tlders-cell tlders-col-' . esc_attr($col) . ($c === 0 ? ' tlders-main' : '') . '">'
+                    . '<span class="tlders-lbl">' . esc_html(self::label($col)) . '</span>'
+                    . '<b>' . esc_html($currency->format($o[$col])) . '</b>';
+                if ($c === 0 && $bars[$i]) {
+                    $html .= '<span class="tlders-bar"><i style="width:' . (int) $bars[$i] . '%"></i></span>';
+                }
+                if ($col === 'renew' && Insights::renewJump($o)) {
+                    $html .= '<span class="tlders-badge tlders-warn">' . esc_html__('Promo first year', 'tlders-domain-prices') . '</span>';
+                }
+                $html .= '</div>';
             }
-            $rows .= '<td class="tlders-buy">' . self::link($o['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</td></tr>';
+            $html .= self::link($o['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</div>';
         }
-        $table = '<table class="tlders-table"><thead><tr>' . $head . '</tr></thead><tbody>' . $rows . '</tbody></table>';
-        return $wrap ? self::wrap($table) : $table;
+        return $html . '</div>';
+    }
+
+    private static function stat($label, $value, $highlight = false)
+    {
+        return '<div class="tlders-stat' . ($highlight ? ' tlders-hl' : '') . '"><span>' . esc_html($label) . '</span><strong>' . esc_html($value) . '</strong></div>';
+    }
+
+    /** Registrar initials on a colour that's stable per registrar (plain CSS, so it survives wp_kses). */
+    private static function avatar(array $offer, $skin)
+    {
+        $h = Insights::hue($offer['slug']);
+        $style = $skin === 'midnight'
+            ? "background-color:hsl($h,45%,20%);color:hsl($h,90%,80%)"
+            : "background-color:hsl($h,85%,90%);color:hsl($h,65%,30%)";
+        return '<span class="tlders-avatar" style="' . esc_attr($style) . '" aria-hidden="true">' . esc_html(Insights::initials($offer['name'])) . '</span>';
+    }
+
+    /** A valid skin: the shortcode's, else the one in Settings. */
+    public static function skin($skin)
+    {
+        $skin = (string) $skin !== '' ? $skin : self::$plugin->settings()['skin'];
+        return in_array($skin, self::SKINS, true) ? $skin : 'theme';
     }
 
     private static function columns($show)
@@ -205,8 +280,8 @@ class TLDers_DP_Shortcodes
             . ($newTab ? ' target="_blank"' : '') . '>' . esc_html($text) . '</a>';
     }
 
-    /** Wraps a block, adding the affiliate disclosure (once per page) and the optional credit. */
-    private static function wrap($html)
+    /** Wraps a block in its skin, adding the affiliate disclosure (once per page) and the optional credit. */
+    private static function wrap($html, $skin)
     {
         wp_enqueue_style('tlders-dp');
         $s = self::$plugin->settings();
@@ -222,7 +297,7 @@ class TLDers_DP_Shortcodes
                 '<a href="https://www.tlders.com" target="_blank" rel="noopener">TLDers</a>'
             ) . '</span>';
         }
-        return '<div class="tlders">' . $html . ($foot !== '' ? '<p class="tlders-foot">' . $foot . '</p>' : '') . '</div>';
+        return '<div class="tlders tlders-skin-' . esc_attr($skin) . '">' . $html . ($foot !== '' ? '<p class="tlders-foot">' . $foot . '</p>' : '') . '</div>';
     }
 
     private static function unavailable()

@@ -15,6 +15,12 @@
       row.style.display = matches && (!mine.checked || hasLink) ? '' : 'none';
     });
   }
-  filter.addEventListener('input', apply);
+  filter.addEventListener('input', function () {
+    if (filter.value) {
+      mine.checked = false; // searching means looking for a registrar to add
+    }
+    apply();
+  });
   mine.addEventListener('change', apply);
+  apply();
 })();

@@ -74,6 +74,7 @@ class TLDers_DP_Plugin
             'show_disclosure' => 1,
             'disclosure' => __('We may earn a commission when you buy through links on this page, at no extra cost to you.', 'tlders-domain-prices'),
             'credit' => 0,
+            'skin' => 'theme',
             'app_api' => 0,
             'app_name' => '',
         ];
@@ -178,6 +179,9 @@ class TLDers_DP_Plugin
             'name' => $s['app_name'] !== '' ? $s['app_name'] : get_bloginfo('name'),
             'disclosure' => $s['disclosure'],
             'popularTlds' => Client::normalizeList($s['popular_tlds']),
+            // The app has no "theme" skin (no WordPress theme to follow): it uses Minimal.
+            'skin' => $s['skin'] === 'theme' ? 'minimal' : $s['skin'],
+            'accent' => '',
         ]);
     }
 }

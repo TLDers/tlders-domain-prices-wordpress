@@ -9,15 +9,21 @@ and refreshes daily.
 - **A block, a widget and shortcodes.** Put prices in posts, pages, sidebars and block-theme widget areas.
 - **A domain search box.** Visitors type `mybrand.com` and see where it's cheapest to register.
 - **Any currency.** Show prices in INR, EUR or any other currency at your own rate.
+- **Six skins.** Theme (blends into your site), Aurora, Midnight, Fresh, Sunset and Minimal, set site-wide or per block.
+- **Smart extras.** Registrar avatars, a "Best price" badge, savings against the average, price bars and promo-renewal warnings.
 - **Fast.** Prices are cached on your server and refreshed in the background twice a day.
 
 [![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b)](https://wordpress.org)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4)](https://www.php.net)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPLv2%2B-blue)](LICENSE)
 
-| Domain search | Cheapest prices and sidebar | On phones | Your affiliate links |
-|---|---|---|---|
-| ![Search results](.wordpress-org/screenshot-1.png) | ![Cheapest list and sidebar](.wordpress-org/screenshot-2.png) | ![Phone layout](.wordpress-org/screenshot-3.png) | ![Settings](.wordpress-org/screenshot-4.png) |
+| Domain search (Aurora) | Extension cards + sidebar | On phones (Sunset) |
+|---|---|---|
+| ![Search results](.wordpress-org/screenshot-1.png) | ![Cheapest list and sidebar](.wordpress-org/screenshot-2.png) | ![Phone layout](.wordpress-org/screenshot-3.png) |
+
+| Settings and skin picker | Mixing skins (Aurora + Midnight) |
+|---|---|
+| ![Settings](.wordpress-org/screenshot-4.png) | ![Skins](.wordpress-org/screenshot-5.png) |
 
 ## Install
 
@@ -110,9 +116,22 @@ Turn on **Settings → TLDers Domain Prices → Mobile app API** to serve the
 TLDers white-label Android/iOS app from your site at `/wp-json/tlders/v1`.
 The app only receives prices and your buy links; your API key stays on your server.
 
-## Styling
+## Skins and styling
 
-The plugin uses your theme's fonts. To change the colours, override these in your theme's CSS:
+| Skin | Look |
+|---|---|
+| `theme` (default) | Your theme's fonts and colours, subtle cards |
+| `aurora` | Indigo → violet → pink gradients |
+| `midnight` | Dark panel, neon cyan and lime |
+| `fresh` | Mint and teal, rounded |
+| `sunset` | Orange → pink gradients |
+| `minimal` | Clean white cards, blue accent |
+
+Choose the site-wide skin in **Settings → TLDers Domain Prices → Display**. Override it per block or widget
+(the Skin option) or per shortcode: `[tlders_table tld="io" skin="midnight"]`. The mobile app follows the
+site-wide skin (Theme becomes Minimal there).
+
+Fonts come from your theme. To fine-tune colours, override these in your theme's CSS:
 
 ```css
 .tlders {

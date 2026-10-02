@@ -33,6 +33,7 @@ class TLDers_DP_Block
                 'tlds' => ['type' => 'string', 'default' => ''],
                 'limit' => ['type' => 'integer', 'default' => 10],
                 'page' => ['type' => 'integer', 'default' => 0],
+                'skin' => ['type' => 'string', 'default' => ''],
             ],
             'render_callback' => [__CLASS__, 'render'],
         ]);
@@ -61,6 +62,7 @@ class TLDers_DP_Block
             'tlds' => isset($attributes['tlds']) ? (string) $attributes['tlds'] : '',
             'limit' => isset($attributes['limit']) ? (int) $attributes['limit'] : 10,
             'page' => isset($attributes['page']) ? (int) $attributes['page'] : 0,
+            'skin' => isset($attributes['skin']) ? (string) $attributes['skin'] : '',
         ]);
         if ($html === '') {
             return '';
