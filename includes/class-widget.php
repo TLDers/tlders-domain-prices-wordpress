@@ -20,6 +20,19 @@ class TLDers_DP_Views
         ];
     }
 
+    /** Post HTML plus the search form's tags, for escaping rendered views. */
+    public static function allowed_html()
+    {
+        $allowed = wp_kses_allowed_html('post');
+        $allowed['form'] = ['class' => true, 'method' => true, 'action' => true, 'role' => true];
+        $allowed['input'] = [
+            'type' => true, 'name' => true, 'value' => true, 'placeholder' => true,
+            'aria-label' => true, 'maxlength' => true, 'required' => true, 'class' => true,
+        ];
+        $allowed['button'] = ['type' => true, 'class' => true];
+        return $allowed;
+    }
+
     /**
      * @param string $view   search | cheapest | table | price
      * @param array  $opts   tld, tlds, limit, page (results page ID for search)
@@ -68,13 +81,13 @@ class TLDers_DP_Widget extends WP_Widget
         if ($html === '') {
             return; // nothing to show (e.g. prices unavailable): skip the empty box
         }
-        echo $args['before_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- theme markup
+        echo wp_kses_post($args['before_widget']);
         $title = apply_filters('widget_title', $instance['title'], $instance, $this->id_base);
         if ($title !== '') {
-            echo $args['before_title'] . esc_html($title) . $args['after_title']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo wp_kses_post($args['before_title']) . esc_html($title) . wp_kses_post($args['after_title']);
         }
-        echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the renderers
-        echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo wp_kses($html, TLDers_DP_Views::allowed_html());
+        echo wp_kses_post($args['after_widget']);
     }
 
     public function update($new, $old)
@@ -93,49 +106,39 @@ class TLDers_DP_Widget extends WP_Widget
     public function form($instance)
     {
         $i = array_merge(self::DEFAULTS, (array) $instance);
-        $id = function ($key) {
-            return esc_attr($this->get_field_id($key));
-        };
-        $name = function ($key) {
-            return esc_attr($this->get_field_name($key));
-        };
         ?>
         <p>
-            <label for="<?php echo $id('title'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Title:', 'tlders-domain-prices'); ?></label>
-            <input class="widefat" id="<?php echo $id('title'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="<?php echo $name('title'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" type="text" value="<?php echo esc_attr($i['title']); ?>">
+            <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php esc_html_e('Title:', 'tlders-domain-prices'); ?></label>
+            <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($i['title']); ?>">
         </p>
         <p>
-            <label for="<?php echo $id('view'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Show:', 'tlders-domain-prices'); ?></label>
-            <select class="widefat" id="<?php echo $id('view'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="<?php echo $name('view'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>">
+            <label for="<?php echo esc_attr($this->get_field_id('view')); ?>"><?php esc_html_e('Show:', 'tlders-domain-prices'); ?></label>
+            <select class="widefat" id="<?php echo esc_attr($this->get_field_id('view')); ?>" name="<?php echo esc_attr($this->get_field_name('view')); ?>">
                 <?php foreach (TLDers_DP_Views::labels() as $value => $label) : ?>
                     <option value="<?php echo esc_attr($value); ?>" <?php selected($i['view'], $value); ?>><?php echo esc_html($label); ?></option>
                 <?php endforeach; ?>
             </select>
         </p>
         <p>
-            <label for="<?php echo $id('tld'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Extension (table and single price):', 'tlders-domain-prices'); ?></label>
-            <input class="widefat" id="<?php echo $id('tld'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="<?php echo $name('tld'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" type="text" value="<?php echo esc_attr($i['tld']); ?>" placeholder="com">
+            <label for="<?php echo esc_attr($this->get_field_id('tld')); ?>"><?php esc_html_e('Extension (table and single price):', 'tlders-domain-prices'); ?></label>
+            <input class="widefat" id="<?php echo esc_attr($this->get_field_id('tld')); ?>" name="<?php echo esc_attr($this->get_field_name('tld')); ?>" type="text" value="<?php echo esc_attr($i['tld']); ?>" placeholder="com">
         </p>
         <p>
-            <label for="<?php echo $id('tlds'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Extensions (cheapest list):', 'tlders-domain-prices'); ?></label>
-            <input class="widefat" id="<?php echo $id('tlds'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="<?php echo $name('tlds'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" type="text" value="<?php echo esc_attr($i['tlds']); ?>" placeholder="<?php esc_attr_e('Empty = your popular TLDs', 'tlders-domain-prices'); ?>">
+            <label for="<?php echo esc_attr($this->get_field_id('tlds')); ?>"><?php esc_html_e('Extensions (cheapest list):', 'tlders-domain-prices'); ?></label>
+            <input class="widefat" id="<?php echo esc_attr($this->get_field_id('tlds')); ?>" name="<?php echo esc_attr($this->get_field_name('tlds')); ?>" type="text" value="<?php echo esc_attr($i['tlds']); ?>" placeholder="<?php esc_attr_e('Empty = your popular TLDs', 'tlders-domain-prices'); ?>">
         </p>
         <p>
-            <label for="<?php echo $id('limit'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Registrars to show (table):', 'tlders-domain-prices'); ?></label>
-            <input class="tiny-text" id="<?php echo $id('limit'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" name="<?php echo $name('limit'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" type="number" min="1" max="50" value="<?php echo esc_attr($i['limit']); ?>">
+            <label for="<?php echo esc_attr($this->get_field_id('limit')); ?>"><?php esc_html_e('Registrars to show (table):', 'tlders-domain-prices'); ?></label>
+            <input class="tiny-text" id="<?php echo esc_attr($this->get_field_id('limit')); ?>" name="<?php echo esc_attr($this->get_field_name('limit')); ?>" type="number" min="1" max="50" value="<?php echo esc_attr($i['limit']); ?>">
         </p>
         <p>
-            <label for="<?php echo $id('page'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php esc_html_e('Search results page (search box):', 'tlders-domain-prices'); ?></label>
-            <?php
-            wp_dropdown_pages([
-                'id' => $this->get_field_id('page'),
-                'name' => $this->get_field_name('page'),
-                'selected' => (int) $i['page'],
-                'show_option_none' => __('— Same page —', 'tlders-domain-prices'),
-                'option_none_value' => '0',
-                'class' => 'widefat',
-            ]);
-            ?>
+            <label for="<?php echo esc_attr($this->get_field_id('page')); ?>"><?php esc_html_e('Search results page (search box):', 'tlders-domain-prices'); ?></label>
+            <select class="widefat" id="<?php echo esc_attr($this->get_field_id('page')); ?>" name="<?php echo esc_attr($this->get_field_name('page')); ?>">
+                <option value="0"><?php esc_html_e('— Same page —', 'tlders-domain-prices'); ?></option>
+                <?php foreach (get_pages(['sort_column' => 'post_title']) as $tlders_dp_page) : ?>
+                    <option value="<?php echo esc_attr($tlders_dp_page->ID); ?>" <?php selected((int) $i['page'], $tlders_dp_page->ID); ?>><?php echo esc_html($tlders_dp_page->post_title !== '' ? $tlders_dp_page->post_title : '#' . $tlders_dp_page->ID); ?></option>
+                <?php endforeach; ?>
+            </select>
             <small><?php esc_html_e('In a sidebar, pick a page that contains [tlders_search] (or the Domain Prices block set to "Domain search box") so results get the full width.', 'tlders-domain-prices'); ?></small>
         </p>
         <?php

@@ -2,6 +2,11 @@
 
 namespace TLDers\Sdk;
 
+// Only loaded through autoload.php (WordPress, the TLDers script, or the tests).
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * The JSON contract the white-label mobile app reads. It's sold as an addon
  * for the PHP script (api.php/...), and the WordPress plugin serves the same

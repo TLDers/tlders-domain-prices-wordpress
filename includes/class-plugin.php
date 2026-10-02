@@ -7,7 +7,6 @@ if (!defined('ABSPATH')) {
 use TLDers\Sdk\AppApi;
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Currency;
-use TLDers\Sdk\FileCache;
 use TLDers\Sdk\Links;
 
 /** Settings, the shared SDK objects, background refresh and the mobile app REST API. */
@@ -33,7 +32,6 @@ class TLDers_DP_Plugin
 
     public function boot()
     {
-        add_action('init', [$this, 'load_textdomain']);
         add_action(self::CRON_HOOK, [$this, 'refresh']);
         add_action('rest_api_init', [$this, 'register_rest_routes']);
         // On init, not wp_enqueue_scripts: block themes render post content
@@ -46,11 +44,6 @@ class TLDers_DP_Plugin
         if (is_admin()) {
             new TLDers_DP_Admin($this);
         }
-    }
-
-    public function load_textdomain()
-    {
-        load_plugin_textdomain('tlders-domain-prices', false, dirname(plugin_basename(TLDERS_DP_FILE)) . '/languages');
     }
 
     public static function activate()
@@ -92,14 +85,11 @@ class TLDers_DP_Plugin
         return array_merge(self::defaults(), is_array($saved) ? $saved : []);
     }
 
-    /** The SDK client, caching under uploads/tlders-cache (transients if that isn't writable). */
+    /** The SDK client, caching in transients (so a persistent object cache is used when there is one). */
     public function client()
     {
         if ($this->client === null) {
             $settings = $this->settings();
-            $uploads = wp_upload_dir(null, false);
-            $files = new FileCache(trailingslashit($uploads['basedir']) . 'tlders-cache');
-            $cache = $files->isWritable() ? $files : new TLDers_DP_TransientCache();
             /**
              * Filters the SDK client options (base, userAgent, ttl, freeTlds).
              *
@@ -109,7 +99,7 @@ class TLDers_DP_Plugin
                 'userAgent' => 'TLDers-WordPress/' . TLDERS_DP_VERSION . ' (' . home_url() . ')',
                 'freeTlds' => $settings['free_tlds'],
             ]);
-            $this->client = new Client($settings['api_key'], new TLDers_DP_Transport(), $cache, $options);
+            $this->client = new Client($settings['api_key'], new TLDers_DP_Transport(), new TLDers_DP_TransientCache(), $options);
         }
         return $this->client;
     }
@@ -143,7 +133,6 @@ class TLDers_DP_Plugin
     public function clear_cache()
     {
         $this->client()->clearCache();
-        (new TLDers_DP_TransientCache())->clear();
     }
 
     public function register_assets()

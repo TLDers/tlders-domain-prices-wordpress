@@ -2,6 +2,11 @@
 
 namespace TLDers\Sdk;
 
+// Only loaded through autoload.php (WordPress, the TLDers script, or the tests).
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Key/value cache. Entries keep their value after they expire so the client
  * can fall back to stale prices when TLDers is unreachable or the API key is
@@ -25,69 +30,6 @@ interface Cache
 
     /** Removes every entry this cache owns. */
     public function clear();
-}
-
-/** One JSON file per key in a private directory. */
-class FileCache implements Cache
-{
-    /** @var string */
-    private $dir;
-
-    public function __construct($dir)
-    {
-        $this->dir = rtrim($dir, '/\\');
-        if (!is_dir($this->dir)) {
-            @mkdir($this->dir, 0755, true);
-        }
-        // Keep the cache out of reach on Apache; nginx users should keep the
-        // directory outside the web root (the default for the PHP script).
-        if (is_dir($this->dir) && !file_exists($this->dir . '/.htaccess')) {
-            @file_put_contents($this->dir . '/.htaccess', "Require all denied\nDeny from all\n");
-            @file_put_contents($this->dir . '/index.php', "<?php\n// Silence is golden.\n");
-        }
-    }
-
-    public function isWritable()
-    {
-        return is_dir($this->dir) && is_writable($this->dir);
-    }
-
-    private function path($key)
-    {
-        return $this->dir . '/' . preg_replace('/[^a-z0-9._-]/i', '_', $key) . '.json';
-    }
-
-    public function get($key, $allowStale = false)
-    {
-        $file = $this->path($key);
-        if (!is_readable($file)) {
-            return null;
-        }
-        $entry = json_decode((string) file_get_contents($file), true);
-        if (!is_array($entry) || !array_key_exists('value', $entry)) {
-            return null;
-        }
-        if (!$allowStale && $entry['expires'] < time()) {
-            return null;
-        }
-        return $entry['value'];
-    }
-
-    public function set($key, $value, $ttl)
-    {
-        $file = $this->path($key);
-        $tmp = $file . '.' . getmypid() . '.tmp';
-        if (@file_put_contents($tmp, json_encode(['expires' => time() + (int) $ttl, 'value' => $value])) !== false) {
-            @rename($tmp, $file);
-        }
-    }
-
-    public function clear()
-    {
-        foreach ((array) glob($this->dir . '/*.json') as $file) {
-            @unlink($file);
-        }
-    }
 }
 
 /** In-memory cache, for tests and one-off scripts. */

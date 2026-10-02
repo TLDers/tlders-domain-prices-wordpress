@@ -128,10 +128,10 @@ class TLDers_DP_Admin
         $name = TLDers_DP_Plugin::OPTION;
         $registrars = $client->registrars();
         $field = function ($key) use ($name) {
-            return esc_attr($name . '[' . $key . ']');
+            return $name . '[' . $key . ']';
         };
         $checkbox = function ($key, $label) use ($s, $field) {
-            return '<label><input type="checkbox" name="' . $field($key) . '" value="1"' . checked(1, $s[$key], false) . '> ' . esc_html($label) . '</label>';
+            echo '<label><input type="checkbox" name="' . esc_attr($field($key)) . '" value="1"' . checked(1, $s[$key], false) . '> ' . esc_html($label) . '</label>';
         };
         ?>
         <div class="wrap tlders-admin">
@@ -152,7 +152,7 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><label for="tlders-api-key"><?php esc_html_e('TLDers API key', 'tlders-domain-prices'); ?></label></th>
                         <td>
-                            <input id="tlders-api-key" type="password" class="regular-text" autocomplete="off" name="<?php echo $field('api_key'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in $field ?>" value="<?php echo esc_attr($s['api_key']); ?>">
+                            <input id="tlders-api-key" type="password" class="regular-text" autocomplete="off" name="<?php echo esc_attr($field('api_key')); ?>" value="<?php echo esc_attr($s['api_key']); ?>">
                             <p class="description">
                                 <?php
                                 printf(
@@ -167,7 +167,7 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><label for="tlders-free-tlds"><?php esc_html_e('TLDs on a free key', 'tlders-domain-prices'); ?></label></th>
                         <td>
-                            <input id="tlders-free-tlds" type="text" class="large-text" name="<?php echo $field('free_tlds'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['free_tlds']); ?>">
+                            <input id="tlders-free-tlds" type="text" class="large-text" name="<?php echo esc_attr($field('free_tlds')); ?>" value="<?php echo esc_attr($s['free_tlds']); ?>">
                             <p class="description"><?php esc_html_e('Each TLD uses about one request a day, and free keys get 100 a month. Keep this list to about 3 TLDs on a free key. Ignored on a paid key.', 'tlders-domain-prices'); ?></p>
                         </td>
                     </tr>
@@ -181,8 +181,8 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><?php esc_html_e('Registrars without your link', 'tlders-domain-prices'); ?></th>
                         <td>
-                            <label><input type="radio" name="<?php echo $field('fallback'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="tlders" <?php checked($s['fallback'], 'tlders'); ?>> <?php esc_html_e('Show them, linking through tlders.com (TLDers may earn a commission on these)', 'tlders-domain-prices'); ?></label><br>
-                            <label><input type="radio" name="<?php echo $field('fallback'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="hide" <?php checked($s['fallback'], 'hide'); ?>> <?php esc_html_e('Hide them: only show registrars I have a link for', 'tlders-domain-prices'); ?></label>
+                            <label><input type="radio" name="<?php echo esc_attr($field('fallback')); ?>" value="tlders" <?php checked($s['fallback'], 'tlders'); ?>> <?php esc_html_e('Show them, linking through tlders.com (TLDers may earn a commission on these)', 'tlders-domain-prices'); ?></label><br>
+                            <label><input type="radio" name="<?php echo esc_attr($field('fallback')); ?>" value="hide" <?php checked($s['fallback'], 'hide'); ?>> <?php esc_html_e('Hide them: only show registrars I have a link for', 'tlders-domain-prices'); ?></label>
                         </td>
                     </tr>
                 </table>
@@ -231,33 +231,33 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><?php esc_html_e('Currency', 'tlders-domain-prices'); ?></th>
                         <td class="tlders-currency">
-                            <label><?php esc_html_e('Code', 'tlders-domain-prices'); ?> <input type="text" size="4" maxlength="3" name="<?php echo $field('currency_code'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['currency_code']); ?>"></label>
-                            <label><?php esc_html_e('Symbol', 'tlders-domain-prices'); ?> <input type="text" size="4" name="<?php echo $field('currency_symbol'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['currency_symbol']); ?>"></label>
-                            <label><?php esc_html_e('1 USD =', 'tlders-domain-prices'); ?> <input type="number" step="any" min="0" name="<?php echo $field('currency_rate'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['currency_rate']); ?>"></label>
-                            <label><?php esc_html_e('Decimals', 'tlders-domain-prices'); ?> <input type="number" min="0" max="3" name="<?php echo $field('decimals'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['decimals']); ?>"></label>
+                            <label><?php esc_html_e('Code', 'tlders-domain-prices'); ?> <input type="text" size="4" maxlength="3" name="<?php echo esc_attr($field('currency_code')); ?>" value="<?php echo esc_attr($s['currency_code']); ?>"></label>
+                            <label><?php esc_html_e('Symbol', 'tlders-domain-prices'); ?> <input type="text" size="4" name="<?php echo esc_attr($field('currency_symbol')); ?>" value="<?php echo esc_attr($s['currency_symbol']); ?>"></label>
+                            <label><?php esc_html_e('1 USD =', 'tlders-domain-prices'); ?> <input type="number" step="any" min="0" name="<?php echo esc_attr($field('currency_rate')); ?>" value="<?php echo esc_attr($s['currency_rate']); ?>"></label>
+                            <label><?php esc_html_e('Decimals', 'tlders-domain-prices'); ?> <input type="number" min="0" max="3" name="<?php echo esc_attr($field('decimals')); ?>" value="<?php echo esc_attr($s['decimals']); ?>"></label>
                             <p class="description"><?php esc_html_e('TLDers prices are in USD. For INR, set code INR, symbol ₹, your rate (e.g. 84) and 0 decimals.', 'tlders-domain-prices'); ?></p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="tlders-popular"><?php esc_html_e('Popular TLDs', 'tlders-domain-prices'); ?></label></th>
-                        <td><input id="tlders-popular" type="text" class="large-text" name="<?php echo $field('popular_tlds'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['popular_tlds']); ?>">
+                        <td><input id="tlders-popular" type="text" class="large-text" name="<?php echo esc_attr($field('popular_tlds')); ?>" value="<?php echo esc_attr($s['popular_tlds']); ?>">
                             <p class="description"><?php esc_html_e('Used by [tlders_cheapest] without a tlds="" attribute, and by the mobile app home screen.', 'tlders-domain-prices'); ?></p></td>
                     </tr>
                     <tr>
                         <th scope="row"><?php esc_html_e('Links', 'tlders-domain-prices'); ?></th>
-                        <td><?php echo $checkbox('new_tab', __('Open buy links in a new tab', 'tlders-domain-prices')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                        <td><?php $checkbox('new_tab', __('Open buy links in a new tab', 'tlders-domain-prices')); ?></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="tlders-disclosure"><?php esc_html_e('Affiliate disclosure', 'tlders-domain-prices'); ?></label></th>
                         <td>
-                            <?php echo $checkbox('show_disclosure', __('Show this under price tables and search results (once per page)', 'tlders-domain-prices')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                            <textarea id="tlders-disclosure" class="large-text" rows="2" name="<?php echo $field('disclosure'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>"><?php echo esc_textarea($s['disclosure']); ?></textarea>
+                            <?php $checkbox('show_disclosure', __('Show this under price tables and search results (once per page)', 'tlders-domain-prices')); ?>
+                            <textarea id="tlders-disclosure" class="large-text" rows="2" name="<?php echo esc_attr($field('disclosure')); ?>"><?php echo esc_textarea($s['disclosure']); ?></textarea>
                             <p class="description"><?php esc_html_e('Most affiliate programs and advertising rules require a clear disclosure.', 'tlders-domain-prices'); ?></p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row"><?php esc_html_e('Credit', 'tlders-domain-prices'); ?></th>
-                        <td><?php echo $checkbox('credit', __('Show a small "Prices by TLDers" link under tables (optional)', 'tlders-domain-prices')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                        <td><?php $checkbox('credit', __('Show a small "Prices by TLDers" link under tables (optional)', 'tlders-domain-prices')); ?></td>
                     </tr>
                 </table>
 
@@ -266,7 +266,7 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><?php esc_html_e('App API', 'tlders-domain-prices'); ?></th>
                         <td>
-                            <?php echo $checkbox('app_api', __('Serve prices to the TLDers white-label mobile app', 'tlders-domain-prices')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                            <?php $checkbox('app_api', __('Serve prices to the TLDers white-label mobile app', 'tlders-domain-prices')); ?>
                             <p class="description"><?php
                                 printf(
                                     /* translators: %s: REST URL */
@@ -278,7 +278,7 @@ class TLDers_DP_Admin
                     </tr>
                     <tr>
                         <th scope="row"><label for="tlders-app-name"><?php esc_html_e('Name shown in the app', 'tlders-domain-prices'); ?></label></th>
-                        <td><input id="tlders-app-name" type="text" class="regular-text" name="<?php echo $field('app_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" value="<?php echo esc_attr($s['app_name']); ?>" placeholder="<?php echo esc_attr(get_bloginfo('name')); ?>"></td>
+                        <td><input id="tlders-app-name" type="text" class="regular-text" name="<?php echo esc_attr($field('app_name')); ?>" value="<?php echo esc_attr($s['app_name']); ?>" placeholder="<?php echo esc_attr(get_bloginfo('name')); ?>"></td>
                     </tr>
                 </table>
 

@@ -22,9 +22,8 @@ class TLDers_DP_Transport implements TLDers\Sdk\Transport
 }
 
 /**
- * Transient-backed cache, used only when the uploads folder isn't writable
- * (the file cache is preferred: a paid key caches one entry per TLD).
- * Each value is stored with its own expiry inside a longer-lived transient so
+ * Transient-backed price cache (a paid key stores one entry per TLD; with a
+ * persistent object cache these never touch the database). Each value is stored with its own expiry inside a longer-lived transient so
  * stale prices remain available as a fallback.
  */
 class TLDers_DP_TransientCache implements TLDers\Sdk\Cache
@@ -49,6 +48,8 @@ class TLDers_DP_TransientCache implements TLDers\Sdk\Cache
     public function clear()
     {
         global $wpdb;
+        // Transients have no "delete by prefix" API; this only touches our own rows.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
             $wpdb->esc_like('_transient_' . self::PREFIX) . '%',

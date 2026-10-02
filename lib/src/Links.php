@@ -2,6 +2,11 @@
 
 namespace TLDers\Sdk;
 
+// Only loaded through autoload.php (WordPress, the TLDers script, or the tests).
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Builds "Buy" links. A registrar the site owner has set up uses the owner's
  * own affiliate link, so the owner earns the commission. The rest either go

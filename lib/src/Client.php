@@ -2,6 +2,11 @@
 
 namespace TLDers\Sdk;
 
+// Only loaded through autoload.php (WordPress, the TLDers script, or the tests).
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class ApiException extends \RuntimeException
 {
 }
