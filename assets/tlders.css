@@ -1,0 +1,91 @@
+/* TLDers Domain Prices — inherits the theme's fonts and colours; override any
+   of these custom properties in your theme's CSS. */
+.tlders {
+  --tlders-accent: #0f766e;
+  --tlders-accent-text: #fff;
+  --tlders-border: rgba(127, 127, 127, 0.25);
+  --tlders-best: rgba(15, 118, 110, 0.08);
+  --tlders-muted: rgba(127, 127, 127, 0.9);
+  /* Lay out by the space we're given, not the screen: a sidebar is narrow even on desktop. */
+  container: tlders / inline-size;
+  margin: 1.5em 0;
+}
+.widget .tlders,
+.wp-block-widget-area .tlders { margin: 0; }
+
+.tlders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.tlders-table th,
+.tlders-table td {
+  padding: 0.6em 0.75em;
+  border-bottom: 1px solid var(--tlders-border);
+  text-align: left;
+  vertical-align: middle;
+}
+.tlders-table th { font-weight: 600; }
+.tlders-table .tlders-num { text-align: right; white-space: nowrap; }
+.tlders-table .tlders-buy { text-align: right; width: 1%; white-space: nowrap; }
+.tlders-table .tlders-tld { font-weight: 600; }
+.tlders-table tr.tlders-best td { background: var(--tlders-best); }
+
+.tlders-button {
+  display: inline-block;
+  padding: 0.35em 0.9em;
+  border-radius: 6px;
+  background: var(--tlders-accent);
+  color: var(--tlders-accent-text) !important;
+  text-decoration: none !important;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.tlders-button:hover,
+.tlders-button:focus-visible { filter: brightness(1.1); }
+
+.tlders-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5em; margin-bottom: 1em; }
+.tlders-search input[type="search"] { width: 100%; min-width: 0; box-sizing: border-box; padding: 0.6em 0.75em; }
+.tlders-search button { padding: 0.6em 1.2em; background: var(--tlders-accent); color: var(--tlders-accent-text); border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+.tlders-heading { margin: 0.5em 0; }
+.tlders-note,
+.tlders-foot { color: var(--tlders-muted); font-size: 0.875em; }
+.tlders-foot { margin-top: 0.5em; }
+
+/* Narrow spaces (phones, sidebars): each row becomes a card — name and prices
+   stacked on the left, Buy on the right — so Buy never scrolls out of view. */
+@container tlders (max-width: 520px) {
+  .tlders-table thead { display: none; }
+  .tlders-table,
+  .tlders-table tbody { display: block; width: 100%; }
+  .tlders-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 1em;
+    align-items: center;
+    padding: 0.6em 0.5em;
+    border-bottom: 1px solid var(--tlders-border);
+  }
+  .tlders-table tr.tlders-best { background: var(--tlders-best); }
+  .tlders-table tr.tlders-best td { background: none; }
+  .tlders-table td {
+    grid-column: 1;
+    border: 0;
+    padding: 0;
+    width: auto;
+    text-align: left;
+    white-space: normal;
+  }
+  .tlders-table .tlders-name,
+  .tlders-table .tlders-tld { font-weight: 600; }
+  .tlders-table .tlders-buy { grid-column: 2; grid-row: 1 / span 4; text-align: right; }
+  .tlders-table .tlders-num { text-align: left; font-size: 0.9em; white-space: normal; }
+  .tlders-table .tlders-button { padding: 0.3em 0.75em; }
+  .tlders-table .tlders-num[data-label]::before { content: attr(data-label) " "; color: var(--tlders-muted); }
+}
+
+/* Very narrow spaces (most sidebars): the button goes under the search box. */
+@container tlders (max-width: 340px) {
+  .tlders-search { grid-template-columns: minmax(0, 1fr); }
+}
