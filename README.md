@@ -10,6 +10,7 @@ and refreshes daily.
 - **A domain search box.** Visitors type `mybrand.com` and see where it's cheapest to register.
 - **Any currency.** Show prices in INR, EUR or any other currency at your own rate.
 - **Six skins.** Theme (blends into your site), Aurora, Midnight, Fresh, Sunset and Minimal, set site-wide or per block.
+- **Interactive.** Instant Register/Renew/Transfer sorting, list or grid view, filter as you type, "Show all", and live search results as visitors type (all still work without JavaScript).
 - **Smart extras.** Registrar avatars, a "Best price" badge, savings against the average, price bars and promo-renewal warnings.
 - **Fast.** Prices are cached on your server and refreshed in the background twice a day.
 

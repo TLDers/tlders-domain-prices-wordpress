@@ -34,6 +34,15 @@ Pick one in Settings, or set a different skin per block, widget or shortcode (`s
 
 Add them with the **Domain Prices block** (posts, pages and block-theme widget areas, with a live preview), the **sidebar widget** (classic themes), or shortcodes.
 
+= Interactive, not static =
+
+* **Instant sorting:** switch between Register, Renew and Transfer prices and the list reorders on the spot (animated).
+* **List or grid:** visitors pick the layout they like; it's remembered in their browser.
+* **Filter as you type** and **Show all** for long lists.
+* **Live search:** prices appear under the search box as the visitor types, without reloading the page.
+
+Everything still works with JavaScript turned off.
+
 = Built for affiliates =
 
 * **Your link per registrar**, with `{domain}`, `{sld}` and `{tld}` placeholders, so visitors land on the registrar's search for the exact domain they want.
@@ -135,7 +144,7 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 == Changelog ==
 
 = 1.0.0 =
-* First release: Domain Prices block, sidebar widget, four shortcodes, six skins, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
+* First release: Domain Prices block, sidebar widget, four shortcodes, six skins, live search, instant sorting, list/grid views, filtering, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
 
 == Upgrade Notice ==
 

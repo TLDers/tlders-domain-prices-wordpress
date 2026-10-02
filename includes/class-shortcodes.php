@@ -93,7 +93,7 @@ class TLDers_DP_Shortcodes
                     $currency->format($o['renew'])
                 )) . '</span>'
                 : '<span></span>';
-            $cards .= '<div class="tlders-card"><div class="tlders-card-head">'
+            $cards .= '<div class="tlders-card" data-item data-name="' . esc_attr($tld) . '" data-register="' . esc_attr((string) $o[$type]) . '"><div class="tlders-card-head">'
                 . '<span class="tlders-ext">.' . esc_html($tld) . '</span>'
                 . ($summary['savingPct'] ? '<span class="tlders-badge tlders-save">' . esc_html(sprintf(
                     /* translators: %d: percentage saved */
@@ -114,7 +114,15 @@ class TLDers_DP_Shortcodes
         if ($cards === '') {
             return self::unavailable();
         }
-        return self::wrap('<div class="tlders-grid">' . $cards . '</div>', $skin);
+        $toolbar = '<div class="tlders-toolbar" data-js-only hidden>'
+            . '<span class="tlders-sort" role="group" aria-label="' . esc_attr__('Sort by', 'tlders-domain-prices') . '">'
+            . '<button type="button" data-sort="register" class="is-active" aria-pressed="true">' . esc_html__('Cheapest', 'tlders-domain-prices') . '</button>'
+            . '<button type="button" data-sort="name" aria-pressed="false">' . esc_html__('A–Z', 'tlders-domain-prices') . '</button></span>'
+            . '<input type="search" data-filter hidden placeholder="' . esc_attr__('Filter extensions…', 'tlders-domain-prices') . '" aria-label="' . esc_attr__('Filter extensions', 'tlders-domain-prices') . '">'
+            . self::view_toggle('grid') . '</div>';
+        return self::wrap('<div class="tlders-list is-grid" data-tlders-list="tlds">' . $toolbar
+            . '<div class="tlders-grid" data-items>' . $cards . '</div>'
+            . '<p class="tlders-note" data-empty hidden>' . esc_html__('No extension matches that filter.', 'tlders-domain-prices') . '</p></div>', $skin);
     }
 
     public static function search($atts)
@@ -145,8 +153,18 @@ class TLDers_DP_Shortcodes
                 $hidden .= '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
             }
         }
-        $form = '<form class="tlders-search" method="get" action="' . esc_url($action) . '" role="search">' . $hidden
-            . '<input type="search" name="' . esc_attr(self::QUERY_VAR) . '" value="' . esc_attr($resultsPage ? '' : $query) . '" placeholder="' . esc_attr($a['placeholder']) . '" aria-label="' . esc_attr__('Domain or extension', 'tlders-domain-prices') . '" maxlength="253" required>'
+        static $instance = 0;
+        $instance++;
+        $live = !$resultsPage;
+        $targetId = 'tlders-live-' . $instance;
+        $endpoint = add_query_arg([
+            'limit' => (int) $a['limit'],
+            'show' => implode(',', self::columns($a['show'])),
+            'skin' => $skin,
+        ], rest_url(TLDers_DP_Plugin::REST_NAMESPACE . '/live'));
+        $form = '<form class="tlders-search" method="get" action="' . esc_url($action) . '" role="search"'
+            . ($live ? ' data-tlders-live data-endpoint="' . esc_url($endpoint) . '" data-target="#' . esc_attr($targetId) . '"' : '') . '>' . $hidden
+            . '<input type="search" name="' . esc_attr(self::QUERY_VAR) . '" value="' . esc_attr($resultsPage ? '' : $query) . '" placeholder="' . esc_attr($a['placeholder']) . '" aria-label="' . esc_attr__('Domain or extension', 'tlders-domain-prices') . '" maxlength="253" required autocomplete="off">'
             . '<button type="submit">' . esc_html__('Compare prices', 'tlders-domain-prices') . '</button></form>';
 
         // The search box sits in a hero panel; in a sidebar (results on another page) it's compact.
@@ -154,32 +172,77 @@ class TLDers_DP_Shortcodes
             . (!$resultsPage && trim($a['title']) !== '' ? '<p class="tlders-hero-title">' . esc_html($a['title']) . '</p>' : '')
             . $form . '</div>';
 
-        if ($query === '' || $resultsPage) {
-            wp_enqueue_style('tlders-dp');
+        if ($resultsPage) {
+            self::enqueue();
             return '<div class="tlders tlders-skin-' . esc_attr($skin) . '">' . $panel . '</div>';
         }
+        $result = $query !== '' ? self::search_results($query, (int) $a['limit'], self::columns($a['show']), $skin) : '';
+        $results = '<div id="' . esc_attr($targetId) . '" class="tlders-live" aria-live="polite"' . ($result === '' ? ' hidden' : '') . '>' . $result . '</div>';
+        if ($query === '') {
+            self::enqueue();
+            return '<div class="tlders tlders-skin-' . esc_attr($skin) . '">' . $panel . $results . '</div>';
+        }
+        return self::wrap($panel . $results, $skin);
+    }
 
+    /**
+     * Heading + registrar list for what a visitor searched (or a note explaining why not).
+     * Used by [tlders_search] and the live-search REST endpoint, so both render the same.
+     */
+    public static function search_results($query, $limit, array $columns, $skin)
+    {
         $client = self::$plugin->client();
         list($domain, $tld) = $client->parseQuery($query);
         if ($tld === '') {
-            $result = '<p class="tlders-note">' . esc_html__('Enter a domain like mybrand.com or an extension like .io.', 'tlders-domain-prices') . '</p>';
-        } elseif (!$client->canLookup($tld)) {
-            $result = '<p class="tlders-note">' . esc_html(sprintf(
+            return '<p class="tlders-note">' . esc_html__('Enter a domain like mybrand.com or an extension like .io.', 'tlders-domain-prices') . '</p>';
+        }
+        if (!$client->canLookup($tld)) {
+            return '<p class="tlders-note">' . esc_html(sprintf(
                 /* translators: 1: TLD, 2: comma-separated list of TLDs */
                 __('Prices for .%1$s aren\'t available here. Try: %2$s', 'tlders-domain-prices'),
                 $tld,
                 '.' . implode(', .', $client->freeTlds())
             )) . '</p>';
-        } else {
-            $heading = '<h3 class="tlders-heading">' . esc_html(sprintf(
-                /* translators: %s: domain or TLD */
-                __('Prices for %s', 'tlders-domain-prices'),
-                $domain !== '' ? $domain : '.' . $tld
-            )) . '</h3>';
-            $offers = self::render_offers($tld, $domain, (int) $a['limit'], self::columns($a['show']), true, $skin);
-            $result = $heading . ($offers !== '' ? $offers : '<p class="tlders-note">' . esc_html__('No prices found.', 'tlders-domain-prices') . '</p>');
         }
-        return self::wrap($panel . $result, $skin);
+        $heading = '<h3 class="tlders-heading">' . esc_html(sprintf(
+            /* translators: %s: domain or TLD */
+            __('Prices for %s', 'tlders-domain-prices'),
+            $domain !== '' ? $domain : '.' . $tld
+        )) . '</h3>';
+        $offers = self::render_offers($tld, $domain, $limit, $columns, true, $skin);
+        return $heading . ($offers !== '' ? $offers : '<p class="tlders-note">' . esc_html__('No prices found.', 'tlders-domain-prices') . '</p>');
+    }
+
+    /** Live search (tlders-ui.js): GET /wp-json/tlders/v1/live?tlders_q=…&limit=&show=&skin= → {html}. */
+    public static function rest_live(WP_REST_Request $request)
+    {
+        $query = sanitize_text_field((string) $request->get_param(self::QUERY_VAR));
+        $limit = max(1, min(100, (int) ($request->get_param('limit') ?: 10)));
+        $html = $query === '' ? '' : self::search_results($query, $limit, self::columns((string) $request->get_param('show')), self::skin((string) $request->get_param('skin')));
+        $s = self::$plugin->settings();
+        if ($html !== '' && $s['show_disclosure'] && trim($s['disclosure']) !== '') {
+            $html .= '<p class="tlders-foot"><span class="tlders-disclosure">' . esc_html($s['disclosure']) . '</span></p>';
+        }
+        $response = new WP_REST_Response(['html' => $html], 200);
+        $response->header('Cache-Control', 'public, max-age=300');
+        return $response;
+    }
+
+    private static function enqueue()
+    {
+        wp_enqueue_style('tlders-dp');
+        wp_enqueue_script('tlders-dp-ui');
+    }
+
+    private static function view_toggle($active)
+    {
+        $views = ['list' => ['☰', __('List view', 'tlders-domain-prices')], 'grid' => ['▦', __('Grid view', 'tlders-domain-prices')]];
+        $html = '<span class="tlders-views" data-js-only hidden>';
+        foreach ($views as $view => $info) {
+            $on = $view === $active;
+            $html .= '<button type="button" data-view="' . esc_attr($view) . '"' . ($on ? ' class="is-active"' : '') . ' aria-pressed="' . ($on ? 'true' : 'false') . '" title="' . esc_attr($info[1]) . '" aria-label="' . esc_attr($info[1]) . '">' . esc_html($info[0]) . '</button>';
+        }
+        return $html . '</span>';
     }
 
     // ── helpers ────────────────────────────────────────────────────────────
@@ -193,13 +256,17 @@ class TLDers_DP_Shortcodes
         return self::$plugin->links()->attach(self::$plugin->client()->offers($tld), $tld, $domain);
     }
 
-    /** Summary stats + one card per registrar; '' when there are no prices. */
+    /**
+     * Summary stats + one card per registrar; '' when there are no prices. Every registrar is
+     * rendered; rows past $limit start hidden and "Show all" (tlders-ui.js) reveals them.
+     */
     private static function render_offers($tld, $domain, $limit, array $columns, $stats, $skin)
     {
-        $offers = array_slice(self::offers($tld, $domain), 0, max(1, min(100, $limit)));
+        $offers = array_slice(self::offers($tld, $domain), 0, 100);
         if (!$offers) {
             return '';
         }
+        $limit = max(1, min(100, $limit));
         $currency = self::$plugin->currency();
         $summary = Insights::summary($offers);
         $bars = Insights::bars($offers, $columns[0]);
@@ -211,10 +278,27 @@ class TLDers_DP_Shortcodes
                 . self::stat(__('You save', 'tlders-domain-prices'), $summary['savingPct'] ? $summary['savingPct'] . '%' : '—')
                 . '</div>';
         }
-        $html .= '<div class="tlders-offers">';
+        $toolbar = '<div class="tlders-toolbar" data-js-only hidden>';
+        if (count($columns) > 1) {
+            $toolbar .= '<span class="tlders-sort" role="group" aria-label="' . esc_attr__('Sort by', 'tlders-domain-prices') . '">';
+            foreach ($columns as $c => $col) {
+                $toolbar .= '<button type="button" data-sort="' . esc_attr($col) . '"' . ($c === 0 ? ' class="is-active"' : '') . ' aria-pressed="' . ($c === 0 ? 'true' : 'false') . '">' . esc_html(self::label($col)) . '</button>';
+            }
+            $toolbar .= '</span>';
+        }
+        if (count($offers) > 4) {
+            $toolbar .= '<input type="search" data-filter hidden placeholder="' . esc_attr__('Filter registrars…', 'tlders-domain-prices') . '" aria-label="' . esc_attr__('Filter registrars', 'tlders-domain-prices') . '">';
+        }
+        $toolbar .= self::view_toggle('list') . '</div>';
+
+        $html .= '<div class="tlders-list" data-tlders-list="offers" data-limit="' . (int) $limit . '">' . $toolbar . '<div class="tlders-offers" data-items>';
         foreach ($offers as $i => $o) {
             $best = $summary['cheapest'] && $o['slug'] === $summary['cheapest']['slug'];
-            $html .= '<div class="tlders-offer tlders-cols-' . count($columns) . ($best ? ' tlders-is-best' : '') . '">'
+            $data = ' data-item data-name="' . esc_attr($o['name']) . '"';
+            foreach (self::TYPES as $t) {
+                $data .= ' data-' . $t . '="' . esc_attr($o[$t] === null ? '' : (string) $o[$t]) . '"';
+            }
+            $html .= '<div class="tlders-offer tlders-cols-' . count($columns) . ($best ? ' tlders-is-best' : '') . '"' . $data . ($i >= $limit ? ' hidden' : '') . '>'
                 . '<div class="tlders-who">' . self::avatar($o, $skin) . '<div><strong>' . esc_html($o['name']) . '</strong>'
                 . ($best ? '<span class="tlders-badge tlders-best">' . esc_html__('Best price', 'tlders-domain-prices') . '</span>' : '')
                 . '</div></div>';
@@ -222,8 +306,8 @@ class TLDers_DP_Shortcodes
                 $html .= '<div class="tlders-cell tlders-col-' . esc_attr($col) . ($c === 0 ? ' tlders-main' : '') . '">'
                     . '<span class="tlders-lbl">' . esc_html(self::label($col)) . '</span>'
                     . '<b>' . esc_html($currency->format($o[$col])) . '</b>';
-                if ($c === 0 && $bars[$i]) {
-                    $html .= '<span class="tlders-bar"><i style="width:' . (int) $bars[$i] . '%"></i></span>';
+                if ($c === 0) {
+                    $html .= '<span class="tlders-bar"><i data-bar style="width:' . (int) $bars[$i] . '%"></i></span>';
                 }
                 if ($col === 'renew' && Insights::renewJump($o)) {
                     $html .= '<span class="tlders-badge tlders-warn">' . esc_html__('Promo first year', 'tlders-domain-prices') . '</span>';
@@ -231,6 +315,14 @@ class TLDers_DP_Shortcodes
                 $html .= '</div>';
             }
             $html .= self::link($o['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</div>';
+        }
+        $html .= '</div><p class="tlders-note" data-empty hidden>' . esc_html__('No registrar matches that filter.', 'tlders-domain-prices') . '</p>';
+        if (count($offers) > $limit) {
+            $html .= '<button type="button" class="tlders-more" data-more hidden>' . sprintf(
+                /* translators: %s: number of registrars */
+                esc_html__('Show all %s registrars', 'tlders-domain-prices'),
+                '<span data-count>' . count($offers) . '</span>'
+            ) . '</button>';
         }
         return $html . '</div>';
     }
@@ -283,7 +375,7 @@ class TLDers_DP_Shortcodes
     /** Wraps a block in its skin, adding the affiliate disclosure (once per page) and the optional credit. */
     private static function wrap($html, $skin)
     {
-        wp_enqueue_style('tlders-dp');
+        self::enqueue();
         $s = self::$plugin->settings();
         $foot = '';
         if ($s['show_disclosure'] && !self::$disclosed && trim($s['disclosure']) !== '') {

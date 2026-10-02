@@ -139,12 +139,20 @@ class TLDers_DP_Plugin
     public function register_assets()
     {
         wp_register_style('tlders-dp', plugins_url('assets/tlders.css', TLDERS_DP_FILE), [], TLDERS_DP_VERSION);
+        // Interactive lists: instant sort, list/grid, filter, show all, live search.
+        wp_register_script('tlders-dp-ui', plugins_url('assets/tlders-ui.js', TLDERS_DP_FILE), [], TLDERS_DP_VERSION, ['in_footer' => true, 'strategy' => 'defer']);
     }
 
     // ── Mobile app API (/wp-json/tlders/v1/...) ─────────────────────────────
 
     public function register_rest_routes()
     {
+        // Live search for [tlders_search] (always on: it shows what the page itself would).
+        register_rest_route(self::REST_NAMESPACE, '/live', [
+            'methods' => 'GET',
+            'permission_callback' => '__return_true',
+            'callback' => ['TLDers_DP_Shortcodes', 'rest_live'],
+        ]);
         if (!$this->settings()['app_api']) {
             return;
         }

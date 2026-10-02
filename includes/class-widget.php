@@ -42,9 +42,21 @@ class TLDers_DP_Views
             'type' => true, 'name' => true, 'value' => true, 'placeholder' => true,
             'aria-label' => true, 'maxlength' => true, 'required' => true, 'class' => true,
         ];
-        $allowed['button'] = ['type' => true, 'class' => true];
-        $allowed['span']['style'] = true;
-        $allowed['i'] = ['style' => true];
+        $allowed['button'] = [
+            'type' => true, 'class' => true, 'title' => true, 'hidden' => true, 'aria-label' => true, 'aria-pressed' => true,
+            'data-sort' => true, 'data-view' => true, 'data-more' => true,
+        ];
+        $allowed['input']['hidden'] = true;
+        $allowed['input']['data-filter'] = true;
+        $allowed['input']['autocomplete'] = true;
+        $allowed['form']['data-tlders-live'] = true;
+        $allowed['form']['data-endpoint'] = true;
+        $allowed['form']['data-target'] = true;
+        foreach (['div', 'span', 'p'] as $tag) {
+            $allowed[$tag]['hidden'] = true; // rows past the limit, JS-only toolbar
+            $allowed[$tag]['style'] = true;
+        }
+        $allowed['i'] = ['style' => true, 'data-bar' => true];
         return $allowed;
     }
 
