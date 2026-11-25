@@ -11,6 +11,9 @@ use TLDers\Sdk\Insights;
  * [tlders_price tld="com"]                       "$9.58 at Namecheap", linked
  * [tlders_table tld="com" limit="10"]            registrar comparison table for one TLD
  * [tlders_cheapest tlds="com,net,io"]            cheapest registrar for each TLD
+ * [tlders_tlds]                                  every extension with its cheapest price: search, sort,
+ *                                                type (ccTLD/gTLD…) and category filters
+ *                                                (optional type="cctld", category="tech", limit="48")
  * [tlders_search]                                search box; shows the table for what was typed
  * [tlders_search page="12"]                      search box only, sending visitors to page 12 for results
  *                                                (for sidebars: page 12 holds a plain [tlders_search])
@@ -35,6 +38,7 @@ class TLDers_DP_Shortcodes
         add_shortcode('tlders_table', [__CLASS__, 'table']);
         add_shortcode('tlders_cheapest', [__CLASS__, 'cheapest']);
         add_shortcode('tlders_search', [__CLASS__, 'search']);
+        add_shortcode('tlders_tlds', [__CLASS__, 'tlds']);
     }
 
     public static function price($atts)
@@ -123,6 +127,132 @@ class TLDers_DP_Shortcodes
         return self::wrap('<div class="tlders-list is-grid" data-tlders-list="tlds">' . $toolbar
             . '<div class="tlders-grid" data-items>' . $cards . '</div>'
             . '<p class="tlders-note" data-empty hidden>' . esc_html__('No extension matches that filter.', 'tlders-domain-prices') . '</p></div>', $skin);
+    }
+
+    public static function tlds($atts)
+    {
+        $a = shortcode_atts(['type' => '', 'category' => '', 'limit' => 48, 'skin' => ''], $atts, 'tlders_tlds');
+        $skin = self::skin($a['skin']);
+        $client = self::$plugin->client();
+        $currency = self::$plugin->currency();
+        $links = self::$plugin->links();
+        $directory = $client->directory();
+        $typeFilter = sanitize_key($a['type']);
+        $categoryFilter = sanitize_key($a['category']);
+
+        $rows = [];
+        foreach ($client->tlds() as $tld) {
+            $meta = isset($directory[$tld]) ? $directory[$tld] : ['type' => '', 'category' => [], 'rank' => 0];
+            if ($typeFilter !== '' && $meta['type'] !== $typeFilter) {
+                continue;
+            }
+            if ($categoryFilter !== '' && !in_array($categoryFilter, $meta['category'], true)) {
+                continue;
+            }
+            $best = $client->cheapest($tld);
+            if ($best === null) {
+                continue;
+            }
+            $attached = $links->attach([$best], $tld);
+            if (!$attached) {
+                continue;
+            }
+            $rows[] = ['tld' => $tld, 'meta' => $meta, 'offer' => $attached[0]];
+        }
+        if (!$rows) {
+            return self::unavailable();
+        }
+        // Most popular first until the visitor sorts; unranked TLDs fall to A–Z at the end.
+        usort($rows, function ($x, $y) {
+            return $y['meta']['rank'] <=> $x['meta']['rank'] ?: strcmp($x['tld'], $y['tld']);
+        });
+
+        $types = [];
+        $categories = [];
+        $cards = '';
+        foreach ($rows as $row) {
+            $o = $row['offer'];
+            $m = $row['meta'];
+            $tld = $row['tld'];
+            if ($m['type'] !== '') {
+                $types[$m['type']] = true;
+            }
+            foreach ($m['category'] as $c) {
+                $categories[$c] = true;
+            }
+            $page = TLDers_DP_Pages::url($tld);
+            $ext = '<span class="tlders-ext">.' . esc_html($tld) . '</span>';
+            $cards .= '<div class="tlders-card" data-item data-name="' . esc_attr($tld) . '"'
+                . ' data-register="' . esc_attr((string) $o['register']) . '"'
+                . ' data-popular="' . (int) -$m['rank'] . '"'
+                . ' data-facet-type="' . esc_attr('|' . $m['type'] . '|') . '"'
+                . ' data-facet-category="' . esc_attr('|' . implode('|', $m['category']) . '|') . '">'
+                . '<div class="tlders-card-head">' . ($page !== '' ? '<a href="' . esc_url($page) . '">' . $ext . '</a>' : $ext) . '</div>'
+                . '<div class="tlders-from">' . esc_html(self::label('register')) . '</div>'
+                . '<div class="tlders-big">' . esc_html($currency->format($o['register'])) . '</div>'
+                . '<div class="tlders-at">' . self::avatar($o, $skin) . '<span>' . esc_html(sprintf(
+                    /* translators: %s: registrar name */
+                    __('at %s', 'tlders-domain-prices'),
+                    $o['name']
+                )) . '</span></div>'
+                . '<div class="tlders-card-foot"><span></span>' . self::link($o['buyUrl'], __('Buy', 'tlders-domain-prices'), 'tlders-button') . '</div>'
+                . '</div>';
+        }
+
+        $typeNames = [
+            'gtld' => __('Generic (gTLD)', 'tlders-domain-prices'),
+            'cctld' => __('Country (ccTLD)', 'tlders-domain-prices'),
+            'new_gtld' => __('New gTLD', 'tlders-domain-prices'),
+            'sponsored' => __('Sponsored', 'tlders-domain-prices'),
+        ];
+        $select = function ($facet, $label, array $options) {
+            if (count($options) < 2) {
+                return '';
+            }
+            $html = '<select data-facet="' . esc_attr($facet) . '" aria-label="' . esc_attr($label) . '"><option value="">' . esc_html($label) . '</option>';
+            foreach ($options as $value => $text) {
+                $html .= '<option value="' . esc_attr($value) . '">' . esc_html($text) . '</option>';
+            }
+            return $html . '</select>';
+        };
+        $typeOptions = [];
+        foreach (array_keys($types) as $t) {
+            $typeOptions[$t] = isset($typeNames[$t]) ? $typeNames[$t] : $t;
+        }
+        $categoryOptions = [];
+        $names = array_keys($categories);
+        sort($names);
+        foreach ($names as $c) {
+            $categoryOptions[$c] = ucfirst($c);
+        }
+
+        $toolbar = '<div class="tlders-toolbar" data-js-only hidden>'
+            . '<input type="search" data-filter hidden placeholder="' . esc_attr__('Search extensions…', 'tlders-domain-prices') . '" aria-label="' . esc_attr__('Search extensions', 'tlders-domain-prices') . '">'
+            . $select('type', __('All types', 'tlders-domain-prices'), $typeOptions)
+            . $select('category', __('All categories', 'tlders-domain-prices'), $categoryOptions)
+            . '<span class="tlders-sort" role="group" aria-label="' . esc_attr__('Sort by', 'tlders-domain-prices') . '">'
+            . '<button type="button" data-sort="popular" class="is-active" aria-pressed="true">' . esc_html__('Popular', 'tlders-domain-prices') . '</button>'
+            . '<button type="button" data-sort="register" aria-pressed="false">' . esc_html__('Cheapest', 'tlders-domain-prices') . '</button>'
+            . '<button type="button" data-sort="name" aria-pressed="false">' . esc_html__('A–Z', 'tlders-domain-prices') . '</button></span>'
+            . self::view_toggle('grid') . '</div>';
+
+        $limit = max(1, (int) $a['limit']);
+        $more = count($rows) > $limit
+            ? '<button type="button" class="tlders-more" data-more hidden>' . sprintf(
+                /* translators: %s: number of extensions */
+                esc_html__('Show all %s extensions', 'tlders-domain-prices'),
+                '<span data-count>' . count($rows) . '</span>'
+            ) . '</button>'
+            : '';
+        // Items past the limit start hidden (server side) so the page isn't a wall of cards without JS.
+        $cards = preg_replace_callback('/<div class="tlders-card" data-item/', function () use (&$n, $limit) {
+            $n = (int) $n + 1;
+            return $n > $limit ? '<div class="tlders-card" hidden data-item' : '<div class="tlders-card" data-item';
+        }, $cards);
+        return self::wrap('<div class="tlders-list is-grid" data-tlders-list="tlds" data-limit="' . $limit . '">' . $toolbar
+            . '<div class="tlders-grid" data-items>' . $cards . '</div>'
+            . '<p class="tlders-note" data-empty hidden>' . esc_html__('No extension matches those filters.', 'tlders-domain-prices') . '</p>'
+            . $more . '</div>', $skin);
     }
 
     public static function search($atts)

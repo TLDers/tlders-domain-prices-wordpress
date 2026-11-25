@@ -41,6 +41,7 @@ class TLDers_DP_Plugin
         add_action('enqueue_block_editor_assets', ['TLDers_DP_Block', 'editor_data']);
         add_action('widgets_init', ['TLDers_DP_Widget', 'register']);
         TLDers_DP_Shortcodes::register($this);
+        TLDers_DP_Pages::register($this);
         if (is_admin()) {
             new TLDers_DP_Admin($this);
         }
@@ -55,6 +56,8 @@ class TLDers_DP_Plugin
 
     public static function deactivate()
     {
+        flush_rewrite_rules(false);
+        delete_option(TLDers_DP_Pages::FLUSH_OPTION);
         wp_clear_scheduled_hook(self::CRON_HOOK);
     }
 
@@ -70,6 +73,8 @@ class TLDers_DP_Plugin
             'decimals' => 2,
             'free_tlds' => implode(', ', Client::DEFAULT_FREE_TLDS),
             'popular_tlds' => 'com, net, org, io, ai, co, app, dev, in, xyz',
+            'tld_pages' => 1,
+            'tld_base' => 'tld',
             'new_tab' => 1,
             'show_disclosure' => 1,
             'disclosure' => __('We may earn a commission when you buy through links on this page, at no extra cost to you.', 'tlders-domain-prices'),

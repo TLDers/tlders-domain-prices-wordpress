@@ -158,6 +158,56 @@ class Client
         return is_array($stale) ? $stale : [];
     }
 
+    /**
+     * Type and categories for each TLD, keyed by TLD, for filtering a full
+     * list: ['com' => ['type' => 'gtld', 'category' => ['business'], 'rank' => 1000]].
+     * Empty when the directory can't be fetched (callers just skip the filters).
+     *
+     * @return array<string,array{type:string,category:string[],rank:int}>
+     */
+    public function directory()
+    {
+        $stale = $this->cache->get('directory', true);
+        $stale = is_array($stale) ? $stale : [];
+        if ($stale && $this->cache->get('directory:fresh') !== null) {
+            return $stale;
+        }
+        if ($this->apiKey === '' || $this->cache->get('directory:retry') !== null) {
+            return $stale;
+        }
+        $meta = [];
+        $offset = 0;
+        $pages = 0;
+        do {
+            $json = $this->request('/tlds?limit=500&offset=' . $offset, true, $status);
+            if ($json === null || !isset($json['data']) || !is_array($json['data'])) {
+                $meta = [];
+                break;
+            }
+            foreach ($json['data'] as $row) {
+                if (!is_array($row) || !isset($row['tld'])) {
+                    continue;
+                }
+                $meta[self::normalizeTld($row['tld'])] = [
+                    'type' => isset($row['type']) ? (string) $row['type'] : '',
+                    'category' => isset($row['category']) && is_array($row['category'])
+                        ? array_values(array_filter($row['category'], 'is_string')) : [],
+                    'rank' => isset($row['popularityRank']) ? (int) $row['popularityRank'] : 0,
+                ];
+            }
+            $total = isset($json['meta']['total']) ? (int) $json['meta']['total'] : 0;
+            $offset += 500;
+        } while ($offset < $total && ++$pages < 10);
+
+        if (!$meta) {
+            $this->cache->set('directory:retry', 1, 900);
+            return $stale;
+        }
+        $this->cache->set('directory', $meta, $this->ttl + 7 * 24 * 3600);
+        $this->cache->set('directory:fresh', 1, $this->ttl);
+        return $meta;
+    }
+
     /** The cheapest offer to register $tld, or null. */
     public function cheapest($tld, $type = 'register')
     {

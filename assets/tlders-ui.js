@@ -11,6 +11,7 @@
  *     [data-items] > [data-item]              items with data-name, data-register,
  *                                             data-renew, data-transfer (numbers or "")
  *       [data-bar]                            price bar, resized to the chosen sort
+ *     select[data-facet="type|category"]       facet filters; items carry data-facet-type="|gtld|"
  *     [data-more]  [data-empty]               "show all" button, "no match" note (hidden)
  *   form[data-tlders-live][data-endpoint]     live search; results go in the element
  *                                             referenced by data-target (a CSS selector).
@@ -66,6 +67,7 @@
     var filterInput = root.querySelector('input[data-filter]');
     var more = root.querySelector('[data-more]');
     var empty = root.querySelector('[data-empty]');
+    var facets = Array.prototype.slice.call(root.querySelectorAll('select[data-facet]'));
     var sortControls = Array.prototype.slice.call(root.querySelectorAll('[data-sort]'));
     var viewControls = Array.prototype.slice.call(root.querySelectorAll('[data-view]'));
     var expanded = false;
@@ -95,24 +97,36 @@
       });
     }
 
+    // An item matches when it passes the text filter and every facet select
+    // (data-facet="type" compares against the item's data-facet-type; category is
+    // a |pipe|-delimited list on the item).
+    function matches(el, q) {
+      if (q && el.getAttribute('data-name').toLowerCase().indexOf(q) === -1) return false;
+      for (var i = 0; i < facets.length; i++) {
+        var want = facets[i].value;
+        if (!want) continue;
+        var have = el.getAttribute('data-facet-' + facets[i].getAttribute('data-facet')) || '';
+        if (have.indexOf('|' + want + '|') === -1) return false;
+      }
+      return true;
+    }
+
     function apply() {
       var q = filterInput ? filterInput.value.trim().toLowerCase().replace(/^\./, '') : '';
-      var shown = 0;
+      var filtering = !!q || facets.some(function (f) { return f.value; });
+      var shown = 0, total = 0;
       items.forEach(function (el) {
-        var match = !q || el.getAttribute('data-name').toLowerCase().indexOf(q) !== -1;
-        var withinLimit = q || expanded || !limit || shown < limit;
+        var match = matches(el, q);
+        var withinLimit = filtering || expanded || !limit || shown < limit;
         el.hidden = !(match && withinLimit);
-        if (match) shown++;
+        if (match) { shown++; total++; }
       });
-      var matches = items.filter(function (el) {
-        return !q || el.getAttribute('data-name').toLowerCase().indexOf(q) !== -1;
-      }).length;
       if (more) {
-        more.hidden = !!q || expanded || !limit || matches <= limit;
+        more.hidden = filtering || expanded || !limit || total <= limit;
         var count = more.querySelector('[data-count]');
-        if (count) count.textContent = String(matches);
+        if (count) count.textContent = String(total);
       }
-      if (empty) empty.hidden = matches > 0;
+      if (empty) empty.hidden = total > 0;
     }
 
     function sortBy(key, animate) {
@@ -152,6 +166,7 @@
       filterInput.hidden = false;
       filterInput.addEventListener('input', apply);
     }
+    facets.forEach(function (f) { f.addEventListener('change', apply); });
     if (more) {
       more.addEventListener('click', function () { expanded = true; apply(); });
     }
