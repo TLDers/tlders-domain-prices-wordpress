@@ -207,14 +207,6 @@ class TLDers_DP_Admin
                             <p class="description"><?php esc_html_e('Used by [tlders_cheapest] without a tlds="" attribute, and by the mobile app home screen.', 'tlders-domain-prices'); ?></p></td>
                     </tr>
                     <tr>
-                        <th scope="row"><?php esc_html_e('Extension pages', 'tlders-domain-prices'); ?></th>
-                        <td>
-                            <?php $checkbox(__('Give every extension its own page, like /tld/com', 'tlders-domain-prices')); ?>
-                            <p><code><?php echo esc_html(home_url('/')); ?></code><input type="text" class="regular-text code" name="<?php echo esc_attr($field('tld_base')); ?>" value="<?php echo esc_attr($s['tld_base']); ?>" style="width:8em">/com/</p>
-                            <p class="description"><?php esc_html_e('Pages are created automatically for every extension your key covers. Put [tlders_tlds] on a page to list them all with search, sorting and filters.', 'tlders-domain-prices'); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
                         <th scope="row"><?php esc_html_e('Links', 'tlders-domain-prices'); ?></th>
                         <td><?php $checkbox('new_tab', __('Open buy links in a new tab', 'tlders-domain-prices')); ?></td>
                     </tr>
