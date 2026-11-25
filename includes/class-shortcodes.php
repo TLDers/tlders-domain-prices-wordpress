@@ -180,14 +180,13 @@ class TLDers_DP_Shortcodes
             foreach ($m['category'] as $c) {
                 $categories[$c] = true;
             }
-            $page = TLDers_DP_Pages::url($tld);
             $ext = '<span class="tlders-ext">.' . esc_html($tld) . '</span>';
             $cards .= '<div class="tlders-card" data-item data-name="' . esc_attr($tld) . '"'
                 . ' data-register="' . esc_attr((string) $o['register']) . '"'
                 . ' data-popular="' . (int) -$m['rank'] . '"'
                 . ' data-facet-type="' . esc_attr('|' . $m['type'] . '|') . '"'
                 . ' data-facet-category="' . esc_attr('|' . implode('|', $m['category']) . '|') . '">'
-                . '<div class="tlders-card-head">' . ($page !== '' ? '<a href="' . esc_url($page) . '">' . $ext . '</a>' : $ext) . '</div>'
+                . '<div class="tlders-card-head">' . $ext . '</div>'
                 . '<div class="tlders-from">' . esc_html(self::label('register')) . '</div>'
                 . '<div class="tlders-big">' . esc_html($currency->format($o['register'])) . '</div>'
                 . '<div class="tlders-at">' . self::avatar($o, $skin) . '<span>' . esc_html(sprintf(

@@ -25,7 +25,6 @@ require TLDERS_DP_DIR . 'lib/autoload.php';
 require TLDERS_DP_DIR . 'includes/class-wp-adapters.php';
 require TLDERS_DP_DIR . 'includes/class-plugin.php';
 require TLDERS_DP_DIR . 'includes/class-shortcodes.php';
-require TLDERS_DP_DIR . 'includes/class-pages.php';
 require TLDERS_DP_DIR . 'includes/class-widget.php';
 require TLDERS_DP_DIR . 'includes/class-block.php';
 require TLDERS_DP_DIR . 'includes/class-admin.php';

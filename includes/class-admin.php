@@ -94,10 +94,9 @@ class TLDers_DP_Admin
         $out['free_tlds'] = implode(', ', Client::normalizeList(isset($input['free_tlds']) ? $input['free_tlds'] : '')) ?: implode(', ', Client::DEFAULT_FREE_TLDS);
         $out['popular_tlds'] = implode(', ', Client::normalizeList(isset($input['popular_tlds']) ? $input['popular_tlds'] : '')) ?: TLDers_DP_Plugin::defaults()['popular_tlds'];
         $out['skin'] = isset($input['skin'], TLDers_DP_Views::skins()[$input['skin']]) ? $input['skin'] : 'theme';
-        foreach (['tld_pages', 'new_tab', 'show_disclosure', 'credit', 'app_api'] as $flag) {
+        foreach (['new_tab', 'show_disclosure', 'credit', 'app_api'] as $flag) {
             $out[$flag] = empty($input[$flag]) ? 0 : 1;
         }
-        $out['tld_base'] = sanitize_title(isset($input['tld_base']) ? $input['tld_base'] : '') ?: 'tld';
         $out['disclosure'] = sanitize_textarea_field(isset($input['disclosure']) ? $input['disclosure'] : '');
         $out['app_name'] = sanitize_text_field(isset($input['app_name']) ? $input['app_name'] : '');
 
@@ -210,7 +209,7 @@ class TLDers_DP_Admin
                     <tr>
                         <th scope="row"><?php esc_html_e('Extension pages', 'tlders-domain-prices'); ?></th>
                         <td>
-                            <?php $checkbox('tld_pages', __('Give every extension its own page, like /tld/com', 'tlders-domain-prices')); ?>
+                            <?php $checkbox(__('Give every extension its own page, like /tld/com', 'tlders-domain-prices')); ?>
                             <p><code><?php echo esc_html(home_url('/')); ?></code><input type="text" class="regular-text code" name="<?php echo esc_attr($field('tld_base')); ?>" value="<?php echo esc_attr($s['tld_base']); ?>" style="width:8em">/com/</p>
                             <p class="description"><?php esc_html_e('Pages are created automatically for every extension your key covers. Put [tlders_tlds] on a page to list them all with search, sorting and filters.', 'tlders-domain-prices'); ?></p>
                         </td>

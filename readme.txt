@@ -63,7 +63,6 @@ Everything still works with JavaScript turned off.
 * `[tlders_table tld="io"]`: the registrar comparison for one extension
 * `[tlders_cheapest tlds="com,net,io"]`: the cheapest registrar for each extension
 * `[tlders_tlds]`: every extension with its cheapest price, with search, sorting (popular, cheapest, A–Z) and type (ccTLD, gTLD…) and category filters. Needs a paid key to list all of them
-* **Extension pages:** every extension gets its own page at `/tld/com` (the base is configurable in Settings), created automatically with a price table, page title and meta description
 * `[tlders_price tld="com"]`: the cheapest price as an inline link
 
 = Free and paid API keys =
@@ -146,7 +145,6 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 == Changelog ==
 
 = 1.1.0 =
-* New: a page for every extension at /tld/com (base configurable, can be turned off), with price table, title and meta description.
 * New: [tlders_tlds] lists every extension with its cheapest price, with search, sorting, and type (ccTLD, gTLD) and category filters.
 
 = 1.0.0 =
@@ -155,7 +153,7 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 == Upgrade Notice ==
 
 = 1.1.0 =
-Adds per-extension pages and an all-extensions list with filters. Extension pages are on by default; turn them off in Settings if you don't want them.
+Adds [tlders_tlds], an all-extensions list with search, sorting and filters.
 
 = 1.0.0 =
 First release.
