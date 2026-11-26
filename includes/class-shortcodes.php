@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Insights;
+use TLDers\Sdk\Links;
 
 /**
  * [tlders_price tld="com"]                       "$9.58 at Namecheap", linked
@@ -141,6 +142,7 @@ class TLDers_DP_Shortcodes
         $categoryFilter = sanitize_key($a['category']);
 
         $rows = [];
+        $hadOffers = false;
         foreach ($client->tlds() as $tld) {
             $meta = isset($directory[$tld]) ? $directory[$tld] : ['type' => '', 'category' => [], 'rank' => 0];
             if ($typeFilter !== '' && $meta['type'] !== $typeFilter) {
@@ -149,18 +151,25 @@ class TLDers_DP_Shortcodes
             if ($categoryFilter !== '' && !in_array($categoryFilter, $meta['category'], true)) {
                 continue;
             }
-            $best = $client->cheapest($tld);
+            // Cheapest registrar that has a buy link: with "hide registrars I have no link for",
+            // the overall cheapest may be hidden, and the row must not vanish with it.
+            $best = null;
+            $offers = $client->offers($tld);
+            $hadOffers = $hadOffers || $offers !== [];
+            foreach ($links->attach($offers, $tld) as $offer) {
+                if ($offer['register'] !== null && ($best === null || $offer['register'] < $best['register'])) {
+                    $best = $offer;
+                }
+            }
             if ($best === null) {
                 continue;
             }
-            $attached = $links->attach([$best], $tld);
-            if (!$attached) {
-                continue;
-            }
-            $rows[] = ['tld' => $tld, 'meta' => $meta, 'offer' => $attached[0]];
+            $rows[] = ['tld' => $tld, 'meta' => $meta, 'offer' => $best];
         }
         if (!$rows) {
-            return self::unavailable();
+            return self::unavailable($hadOffers && self::$plugin->settings()['fallback'] === Links::FALLBACK_HIDE
+                ? __('every registrar is hidden because you have no affiliate link for it. Add your links under Settings → Domain Prices, or choose "Show them, linking through tlders.com".', 'tlders-domain-prices')
+                : '');
         }
         // Most popular first until the visitor sorts; unranked TLDs fall to A–Z at the end.
         usort($rows, function ($x, $y) {
@@ -521,14 +530,14 @@ class TLDers_DP_Shortcodes
         return '<div class="tlders tlders-skin-' . esc_attr($skin) . '">' . $html . ($foot !== '' ? '<p class="tlders-foot">' . $foot . '</p>' : '') . '</div>';
     }
 
-    private static function unavailable()
+    private static function unavailable($reason = '')
     {
         // Visitors see a quiet note; the reason is on the settings screen.
         return current_user_can('manage_options')
             ? '<p class="tlders-note">' . esc_html(sprintf(
                 /* translators: %s: error message */
                 __('TLDers prices unavailable (only admins see this): %s', 'tlders-domain-prices'),
-                self::$plugin->client()->lastError() ?: __('no prices for this TLD.', 'tlders-domain-prices')
+                $reason !== '' ? $reason : (self::$plugin->client()->lastError() ?: __('no prices for this TLD.', 'tlders-domain-prices'))
             )) . '</p>'
             : '';
     }

@@ -4,7 +4,7 @@ Tags: domain, domain prices, affiliate, price comparison, widget
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 
 == Changelog ==
 
+= 1.1.2 =
+* Fix: [tlders_tlds] showed nothing when "Hide registrars I have no link for" was on and the cheapest registrar had no link. It now lists the cheapest registrar you do show, and admins see why a list is empty.
+
 = 1.1.1 =
 * Settings: [tlders_tlds] added to the shortcode help, and an Add-ons note with a link to the optional paid add-ons.
 
@@ -155,6 +158,9 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 * First release: Domain Prices block, sidebar widget, four shortcodes, six skins, live search, instant sorting, list/grid views, filtering, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+Fixes [tlders_tlds] showing an empty list when only some registrars have your affiliate link.
 
 = 1.1.1 =
 Settings page tweaks only.
