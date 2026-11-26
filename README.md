@@ -168,3 +168,8 @@ or email advertise@tlders.com.
 ## License
 
 GPLv2 or later. See [LICENSE](LICENSE).
+
+## More from TLDers
+
+- [Codester shop](https://www.codester.com/tlders/shop) (PHP script and mobile apps)
+- [All products](https://www.tlders.com/products)
