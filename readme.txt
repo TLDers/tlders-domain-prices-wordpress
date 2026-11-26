@@ -4,7 +4,7 @@ Tags: domain, domain prices, affiliate, price comparison, widget
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -144,6 +144,9 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 
 == Changelog ==
 
+= 1.1.1 =
+* Settings: [tlders_tlds] added to the shortcode help, and an Add-ons note with a link to the optional paid add-ons.
+
 = 1.1.0 =
 * New: a /tlds route in the mobile app API for the app's "All extensions" screen.
 * New: [tlders_tlds] lists every extension with its cheapest price, with search, sorting, and type (ccTLD, gTLD) and category filters.
@@ -152,6 +155,9 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 * First release: Domain Prices block, sidebar widget, four shortcodes, six skins, live search, instant sorting, list/grid views, filtering, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+Settings page tweaks only.
 
 = 1.1.0 =
 Adds [tlders_tlds], an all-extensions list with search, sorting and filters.

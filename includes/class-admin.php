@@ -312,10 +312,22 @@ class TLDers_DP_Admin
                 <tr><td><code>[tlders_table tld="io" limit="10"]</code></td><td><?php esc_html_e('Registrar comparison table. Options: show="register,renew,transfer", domain="mybrand.io".', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_cheapest tlds="com,net,io"]</code></td><td><?php esc_html_e('Cheapest registrar for each TLD. Without tlds="" it uses your popular TLDs. Option: type="renew".', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_search page="12"]</code></td><td><?php esc_html_e('Search box only, sending visitors to page 12 (a page with a plain [tlders_search]) for results. Use it in sidebars and headers.', 'tlders-domain-prices'); ?></td></tr>
+                <tr><td><code>[tlders_tlds]</code></td><td><?php esc_html_e('Every extension with its cheapest price, with search, sorting and type and category filters. Needs a paid TLDers key to list all of them. Options: type="cctld", category="tech", limit="48".', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>skin="aurora"</code></td><td><?php esc_html_e('Any shortcode: theme, aurora, midnight, fresh, sunset or minimal. Overrides the skin chosen above.', 'tlders-domain-prices'); ?></td></tr>
                 <tr><td><code>[tlders_search]</code></td><td><?php esc_html_e('A search box. Visitors type a domain and see where it is cheapest to register. Options: limit="10", show="register,renew".', 'tlders-domain-prices'); ?></td></tr>
                 </tbody>
             </table>
+
+            <h2><?php esc_html_e('Add-ons', 'tlders-domain-prices'); ?></h2>
+            <p>
+                <?php
+                printf(
+                    /* translators: %s: link to the TLDers add-ons shop */
+                    esc_html__('Optional paid add-ons for this plugin, such as a page for every extension with an FAQ and structured data, and white-label Android/iOS apps that use your site, are available in the %s. The plugin works fully without them.', 'tlders-domain-prices'),
+                    '<a href="https://www.codester.com/tlders/shop" target="_blank" rel="noopener">' . esc_html__('TLDers add-ons shop', 'tlders-domain-prices') . '</a>'
+                );
+                ?>
+            </p>
         </div>
         <?php
     }
