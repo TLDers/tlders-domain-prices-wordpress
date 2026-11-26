@@ -145,6 +145,7 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 == Changelog ==
 
 = 1.1.0 =
+* New: a /tlds route in the mobile app API for the app's "All extensions" screen.
 * New: [tlders_tlds] lists every extension with its cheapest price, with search, sorting, and type (ccTLD, gTLD) and category filters.
 
 = 1.0.0 =

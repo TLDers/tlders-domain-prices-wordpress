@@ -17,6 +17,9 @@ if (!defined('ABSPATH')) {
  *   GET {base}/search?q=example.io     offers for the TLD of what was typed
  *   GET {base}/tld/{tld}               offers for one TLD
  *   GET {base}/cheapest?tlds=com,io    cheapest offer per TLD
+ *   GET {base}/tlds?q=&type=&category=&sort=popular|register|name&page=1&per=60
+ *                                      every TLD with its cheapest price, filterable; also lists the
+ *                                      available types and categories
  *
  * Prices in responses are already converted to the site's currency.
  */
@@ -64,6 +67,9 @@ class AppApi
         }
         if ($path === 'cheapest') {
             return [200, $this->cheapest(isset($query['tlds']) ? $query['tlds'] : '')];
+        }
+        if ($path === 'tlds') {
+            return [200, $this->tlds($query)];
         }
         return [404, ['error' => 'Unknown endpoint.']];
     }
@@ -143,6 +149,76 @@ class AppApi
             }
         }
         return ['items' => $items];
+    }
+
+    /**
+     * The browsable directory: every TLD with its cheapest register price, filtered and
+     * sorted server side so the app can page through 1,000+ extensions.
+     *
+     * @param array $query q, type, category, sort (popular|register|name), page, per
+     */
+    public function tlds(array $query)
+    {
+        $q = isset($query['q']) ? Client::normalizeTld((string) $query['q']) : '';
+        $type = isset($query['type']) ? preg_replace('/[^a-z_]/', '', strtolower((string) $query['type'])) : '';
+        $category = isset($query['category']) ? preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $query['category'])) : '';
+        $sort = isset($query['sort']) && in_array($query['sort'], ['popular', 'register', 'name'], true) ? $query['sort'] : 'popular';
+        $per = max(1, min(100, isset($query['per']) ? (int) $query['per'] : 60));
+        $page = max(1, isset($query['page']) ? (int) $query['page'] : 1);
+
+        $directory = $this->client->directory();
+        $types = [];
+        $categories = [];
+        $rows = [];
+        foreach ($this->client->tlds() as $tld) {
+            $meta = isset($directory[$tld]) ? $directory[$tld] : ['type' => '', 'category' => [], 'rank' => 0];
+            if ($meta['type'] !== '') {
+                $types[$meta['type']] = true;
+            }
+            foreach ($meta['category'] as $c) {
+                $categories[$c] = true;
+            }
+            if (($q !== '' && strpos($tld, $q) === false)
+                || ($type !== '' && $meta['type'] !== $type)
+                || ($category !== '' && !in_array($category, $meta['category'], true))) {
+                continue;
+            }
+            $best = $this->client->cheapest($tld);
+            if ($best === null) {
+                continue;
+            }
+            $attached = $this->links->attach([$best], $tld);
+            if ($attached) {
+                $rows[] = ['tld' => $tld, 'meta' => $meta, 'offer' => $attached[0]];
+            }
+        }
+        usort($rows, function ($a, $b) use ($sort) {
+            if ($sort === 'register') {
+                $c = $a['offer']['register'] <=> $b['offer']['register'];
+            } elseif ($sort === 'name') {
+                $c = 0;
+            } else {
+                $c = $b['meta']['rank'] <=> $a['meta']['rank'];
+            }
+            return $c ?: strcmp($a['tld'], $b['tld']);
+        });
+        $total = count($rows);
+        $items = [];
+        foreach (array_slice($rows, ($page - 1) * $per, $per) as $row) {
+            $items[] = ['tld' => $row['tld'], 'type' => $row['meta']['type'], 'category' => $row['meta']['category']]
+                + $this->present($row['offer']);
+        }
+        ksort($types);
+        $categories = array_keys($categories);
+        sort($categories);
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per' => $per,
+            'types' => array_keys($types),
+            'categories' => $categories,
+        ];
     }
 
     private function present(array $offer)

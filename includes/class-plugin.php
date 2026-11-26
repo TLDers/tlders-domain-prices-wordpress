@@ -160,6 +160,7 @@ class TLDers_DP_Plugin
             '/config' => 'config',
             '/search' => 'search',
             '/cheapest' => 'cheapest',
+            '/tlds' => 'tlds',
             '/tld/(?P<tld>[a-z0-9.-]{1,80})' => 'tld',
         ];
         foreach ($routes as $route => $name) {
