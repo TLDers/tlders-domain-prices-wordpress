@@ -1,5 +1,7 @@
 # TLDers Domain Prices for WordPress
 
+> A **WordPress plugin** for adding price comparison to an existing WordPress site. Not to be confused with *TLDers Price Compare*, a separate standalone PHP website script that doesn't need WordPress.
+
 Add domain price comparison to your WordPress site and **earn affiliate commissions
 with your own registrar links**. Prices for register, renew and transfer come from
 [TLDers](https://www.tlders.com), which tracks 145+ registrars and 1,100+ extensions
