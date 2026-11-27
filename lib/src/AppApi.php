@@ -22,6 +22,9 @@ if (!defined('ABSPATH')) {
  *                                      available types and categories
  *
  * Prices in responses are already converted to the site's currency.
+ *
+ * Access control lives in AppAuth: an owner can set an app key, after which every request must carry
+ * X-App-Timestamp and X-App-Signature headers.
  */
 class AppApi
 {

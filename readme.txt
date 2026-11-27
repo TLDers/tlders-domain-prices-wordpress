@@ -75,7 +75,7 @@ By default, registrars you haven't added a link for are still shown and link thr
 
 = Mobile app =
 
-You can optionally serve the TLDers white-label Android/iOS app from your site. The app only receives prices and your buy links; your API key stays on your server.
+You can optionally serve the TLDers white-label Android/iOS app from your site. The app only receives prices and your buy links; your API key stays on your server. Create an app key in the settings so that only your app can read the app API: the app signs each request with the key and the key itself is never sent over the network.
 
 = Open source =
 
@@ -146,6 +146,10 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 
 = 1.1.2 =
 * Fix: [tlders_tlds] showed nothing when "Hide registrars I have no link for" was on and the cheapest registrar had no link. It now lists the cheapest registrar you do show, and admins see why a list is empty.
+
+= Unreleased =
+* New: optional app key for the mobile app API. Only apps that sign their requests with the key can use it. Without a key the API behaves as before.
+* New: the mobile app API is limited to 240 requests a minute per IP address (filter: tlders_dp_app_rate_limit).
 
 = 1.1.1 =
 * Settings: [tlders_tlds] added to the shortcode help, and an Add-ons note with a link to the optional paid add-ons.

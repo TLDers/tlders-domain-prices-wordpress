@@ -119,6 +119,14 @@ Turn on **Settings → TLDers Domain Prices → Mobile app API** to serve the
 TLDers white-label Android/iOS app from your site at `/wp-json/tlders/v1`.
 The app only receives prices and your buy links; your API key stays on your server.
 
+### Lock the app API with an app key
+
+Create an **App key** in the same settings section and put it in the app's config (`appKey`). The app then
+signs each request (HMAC-SHA256 with a timestamp; the key is never sent) and the API answers `401` to
+everything else, so only your app can use it. Without a key the API stays open, as before. Creating a new key
+locks out apps built with the old one. Each IP address is limited to 240 requests a minute (change it with the
+`tlders_dp_app_rate_limit` filter).
+
 ## Skins and styling
 
 | Skin | Look |
