@@ -3,7 +3,7 @@
  * Plugin Name:       TLDers Domain Prices
  * Plugin URI:        https://github.com/TLDers/tlders-domain-prices-wordpress
  * Description:       Domain price comparison tables, cheapest-price tags and a domain search box, as shortcodes, a block and a sidebar widget, with your own registrar affiliate links. Prices from TLDers (145+ registrars, refreshed daily).
- * Version:           1.1.2
+ * Version:           1.2.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            TLDers
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('TLDERS_DP_VERSION', '1.1.2');
+define('TLDERS_DP_VERSION', '1.2.0');
 define('TLDERS_DP_FILE', __FILE__);
 define('TLDERS_DP_DIR', plugin_dir_path(__FILE__));
 
