@@ -4,7 +4,7 @@ Tags: domain, domain prices, affiliate, price comparison, widget
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -147,7 +147,7 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 = 1.1.2 =
 * Fix: [tlders_tlds] showed nothing when "Hide registrars I have no link for" was on and the cheapest registrar had no link. It now lists the cheapest registrar you do show, and admins see why a list is empty.
 
-= Unreleased =
+= 1.2.0 =
 * New: optional app key for the mobile app API. Only apps that sign their requests with the key can use it. Without a key the API behaves as before.
 * New: the mobile app API is limited to 240 requests a minute per IP address (filter: tlders_dp_app_rate_limit).
 
