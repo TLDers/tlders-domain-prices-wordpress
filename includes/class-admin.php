@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 use TLDers\Sdk\AppAuth;
+use TLDers\Sdk\Fcm;
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Links;
 
@@ -22,6 +23,8 @@ class TLDers_DP_Admin
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'register']);
         add_action('admin_post_tlders_dp_clear_cache', [$this, 'clear_cache']);
+        add_action('admin_post_tlders_dp_push_offer', [$this, 'push_offer']);
+        add_action('admin_post_tlders_dp_push_check', [$this, 'push_check']);
         add_action('admin_enqueue_scripts', [$this, 'assets']);
         add_filter('plugin_action_links_' . plugin_basename(TLDERS_DP_FILE), [$this, 'action_links']);
     }
@@ -100,6 +103,46 @@ class TLDers_DP_Admin
         }
         $out['disclosure'] = sanitize_textarea_field(isset($input['disclosure']) ? $input['disclosure'] : '');
         $out['app_name'] = sanitize_text_field(isset($input['app_name']) ? $input['app_name'] : '');
+        // App info (the About screen). Links must be web addresses.
+        foreach (['about_privacy' => __('Privacy policy link', 'tlders-domain-prices'), 'about_terms' => __('Terms link', 'tlders-domain-prices'), 'about_support' => __('Support link', 'tlders-domain-prices'), 'about_update' => __('App update link', 'tlders-domain-prices')] as $field => $label) {
+            $url = isset($input[$field]) ? trim((string) $input[$field]) : '';
+            if ($url !== '' && !Links::isHttpUrl($url)) {
+                /* translators: %s: field name */
+                add_settings_error(TLDers_DP_Plugin::OPTION, 'bad-' . $field, sprintf(__('%s must start with http:// or https:// and was not saved.', 'tlders-domain-prices'), $label));
+                $url = $old[$field];
+            }
+            $out[$field] = $url === '' ? '' : esc_url_raw($url);
+        }
+        $out['about_text'] = sanitize_textarea_field(isset($input['about_text']) ? $input['about_text'] : '');
+        $version = isset($input['min_app_version']) ? trim((string) $input['min_app_version']) : '';
+        if ($version !== '' && !preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}$/', $version)) {
+            add_settings_error(TLDers_DP_Plugin::OPTION, 'bad-min-version', __('The oldest app version must look like 1.3.0 and was not saved.', 'tlders-domain-prices'));
+            $version = $old['min_app_version'];
+        }
+        $out['min_app_version'] = $version;
+
+        // Push notifications. The service account is only read back by the server, never shown: leave the box empty to keep it.
+        $out['push_account'] = $old['push_account'];
+        $out['push_enabled'] = empty($input['push_enabled']) ? 0 : 1;
+        $drop = isset($input['push_min_drop']) ? (float) $input['push_min_drop'] : 5;
+        $out['push_min_drop'] = $drop >= 1 && $drop <= 50 ? $drop : 5;
+        $new_account = isset($input['push_account']) ? trim((string) $input['push_account']) : '';
+        if (!empty($input['remove_push_account'])) {
+            $out['push_account'] = '';
+            $out['push_enabled'] = 0;
+        } elseif ($new_account !== '') {
+            list($account, $error) = Fcm::parseServiceAccount($new_account);
+            if ($account === null) {
+                add_settings_error(TLDers_DP_Plugin::OPTION, 'bad-push-account', esc_html($error));
+            } else {
+                $out['push_account'] = $new_account;
+            }
+        }
+        if ($out['push_enabled'] && $out['push_account'] === '') {
+            $out['push_enabled'] = 0;
+            add_settings_error(TLDers_DP_Plugin::OPTION, 'push-needs-account', __('Paste your Firebase service account file to turn push notifications on.', 'tlders-domain-prices'));
+        }
+
         // The app key is not a form field: it is only created or removed with the buttons.
         $out['app_key'] = $old['app_key'];
         $key_action = isset($input['key_action']) ? $input['key_action'] : '';
@@ -115,6 +158,61 @@ class TLDers_DP_Admin
             $this->plugin->clear_cache();
         }
         return $out;
+    }
+
+    public function push_offer()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Not allowed.', 'tlders-domain-prices'));
+        }
+        check_admin_referer('tlders_dp_push');
+        $fcm = $this->plugin->fcm();
+        $title = isset($_POST['offer_title']) ? sanitize_text_field(wp_unslash($_POST['offer_title'])) : '';
+        $body = isset($_POST['offer_body']) ? sanitize_text_field(wp_unslash($_POST['offer_body'])) : '';
+        $title = function_exists('mb_substr') ? mb_substr($title, 0, 65) : substr($title, 0, 65);
+        $body = function_exists('mb_substr') ? mb_substr($body, 0, 178) : substr($body, 0, 178);
+        if ($fcm === null) {
+            $this->push_redirect(__('Turn push notifications on first.', 'tlders-domain-prices'), true);
+        }
+        if ($title === '' || $body === '') {
+            $this->push_redirect(__('Write a title and a message first.', 'tlders-domain-prices'), true);
+        }
+        list($ok, $message) = $fcm->sendToTopic(Fcm::TOPIC_OFFERS, $title, $body, ['type' => 'offer']);
+        $this->push_redirect($ok ? __('Sent to everyone who allowed offers.', 'tlders-domain-prices') : sprintf(
+            /* translators: %s: the reason Firebase gave */
+            __('Not sent: %s', 'tlders-domain-prices'),
+            $message
+        ), !$ok);
+    }
+
+    public function push_check()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Not allowed.', 'tlders-domain-prices'));
+        }
+        check_admin_referer('tlders_dp_push');
+        $watcher = $this->plugin->watcher();
+        if ($watcher === null) {
+            $this->push_redirect(__('Turn push notifications on first.', 'tlders-domain-prices'), true);
+        }
+        $report = $watcher->run();
+        if ($report['seeded'] > 0 && $report['sent'] === 0) {
+            /* translators: %d: number of extensions */
+            $text = sprintf(__('Checked %d extensions and noted their prices. Drops from now on are sent to the app.', 'tlders-domain-prices'), $report['checked']);
+        } else {
+            /* translators: 1: extensions checked, 2: price drops, 3: sent, 4: failed */
+            $text = sprintf(__('Checked %1$d extensions: %2$d price drops, %3$d sent, %4$d failed.', 'tlders-domain-prices'), $report['checked'], $report['drops'], $report['sent'], $report['failed']);
+        }
+        if ($report['errors']) {
+            $text .= ' ' . implode('; ', array_slice($report['errors'], 0, 2));
+        }
+        $this->push_redirect($text, $report['failed'] > 0);
+    }
+
+    private function push_redirect($message, $error)
+    {
+        wp_safe_redirect(add_query_arg(['page' => self::PAGE, 'tlders_push' => rawurlencode($message), 'tlders_push_error' => $error ? 1 : 0], admin_url('options-general.php')));
+        exit;
     }
 
     public function clear_cache()
@@ -150,6 +248,14 @@ class TLDers_DP_Admin
             <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             if (isset($_GET['tlders_cleared'])) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Price cache cleared.', 'tlders-domain-prices'); ?></p></div>
+            <?php endif; ?>
+            <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if (isset($_GET['tlders_push'])) :
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $push_error = !empty($_GET['tlders_push_error']); ?>
+                <div class="notice notice-<?php echo $push_error ? 'error' : 'success'; ?> is-dismissible"><p><?php
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    echo esc_html(sanitize_text_field(wp_unslash(rawurldecode((string) $_GET['tlders_push'])))); ?></p></div>
             <?php endif; ?>
 
             <?php $this->render_status($client, $s); ?>
@@ -324,8 +430,92 @@ class TLDers_DP_Admin
                     </tr>
                 </table>
 
+                <h2><?php esc_html_e('App info', 'tlders-domain-prices'); ?></h2>
+                <p class="description"><?php esc_html_e('Shown on the app\'s About screen. Everything here is optional.', 'tlders-domain-prices'); ?></p>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="tlders-about-text"><?php esc_html_e('About text', 'tlders-domain-prices'); ?></label></th>
+                        <td><textarea id="tlders-about-text" class="large-text" rows="3" maxlength="500" name="<?php echo esc_attr($field('about_text')); ?>"><?php echo esc_textarea($s['about_text']); ?></textarea></td>
+                    </tr>
+                    <?php foreach (['about_privacy' => __('Privacy policy link', 'tlders-domain-prices'), 'about_terms' => __('Terms link', 'tlders-domain-prices'), 'about_support' => __('Support link', 'tlders-domain-prices'), 'about_update' => __('App update link', 'tlders-domain-prices')] as $key => $label) : ?>
+                        <tr>
+                            <th scope="row"><label for="tlders-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
+                            <td>
+                                <input id="tlders-<?php echo esc_attr($key); ?>" type="url" class="regular-text" name="<?php echo esc_attr($field($key)); ?>" value="<?php echo esc_attr($s[$key]); ?>" placeholder="https://">
+                                <?php if ($key === 'about_update') : ?><p class="description"><?php esc_html_e('Where the "Update" button goes when an app is too old.', 'tlders-domain-prices'); ?></p><?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <tr>
+                        <th scope="row"><label for="tlders-min-version"><?php esc_html_e('Oldest app version allowed', 'tlders-domain-prices'); ?></label></th>
+                        <td>
+                            <input id="tlders-min-version" type="text" class="small-text" name="<?php echo esc_attr($field('min_app_version')); ?>" value="<?php echo esc_attr($s['min_app_version']); ?>" placeholder="1.3.0">
+                            <p class="description"><?php esc_html_e('Apps older than this ask people to update instead of working. Leave empty to allow all versions.', 'tlders-domain-prices'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+
+                <?php $account = $s['push_account'] !== '' ? Fcm::parseServiceAccount($s['push_account'])[0] : null; ?>
+                <h2><?php esc_html_e('Push notifications', 'tlders-domain-prices'); ?></h2>
+                <p class="description"><?php esc_html_e('Send price drops and offers to the app through your own Firebase project (free). Nothing goes through TLDers, and your site never stores anyone\'s device.', 'tlders-domain-prices'); ?></p>
+                <ol class="description">
+                    <li><?php esc_html_e('In Firebase, create a project and add your Android and iOS apps (use your app\'s package name).', 'tlders-domain-prices'); ?></li>
+                    <li><?php esc_html_e('Project settings, Service accounts, Generate new private key. Paste the whole file below.', 'tlders-domain-prices'); ?></li>
+                    <li><?php esc_html_e('Add the app\'s own google-services.json (and GoogleService-Info.plist for iPhone) and rebuild the app: see the app\'s README.', 'tlders-domain-prices'); ?></li>
+                </ol>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Push notifications', 'tlders-domain-prices'); ?></th>
+                        <td><?php $checkbox('push_enabled', __('Turn on push notifications', 'tlders-domain-prices')); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="tlders-push-account"><?php esc_html_e('Firebase service account (JSON)', 'tlders-domain-prices'); ?></label></th>
+                        <td>
+                            <?php if ($account) : ?>
+                                <p><strong><?php
+                                    /* translators: 1: Firebase project id, 2: service account email */
+                                    echo esc_html(sprintf(__('Connected to project %1$s (%2$s).', 'tlders-domain-prices'), $account['project_id'], $account['client_email'])); ?></strong>
+                                    <?php esc_html_e('The key is stored but never shown. Paste a new file to replace it.', 'tlders-domain-prices'); ?></p>
+                            <?php endif; ?>
+                            <textarea id="tlders-push-account" class="large-text code" rows="4" autocomplete="off" spellcheck="false" name="<?php echo esc_attr($field('push_account')); ?>" placeholder='{"type": "service_account", "project_id": "…"}'></textarea>
+                            <?php if ($account) : ?>
+                                <label><input type="checkbox" name="<?php echo esc_attr($field('remove_push_account')); ?>" value="1"> <?php esc_html_e('Remove the stored key and turn push off', 'tlders-domain-prices'); ?></label>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="tlders-push-drop"><?php esc_html_e('Price-drop alert at', 'tlders-domain-prices'); ?></label></th>
+                        <td>
+                            <input id="tlders-push-drop" type="number" min="1" max="50" step="0.5" class="small-text" name="<?php echo esc_attr($field('push_min_drop')); ?>" value="<?php echo esc_attr((string) $s['push_min_drop']); ?>"> %
+                            <p class="description"><?php esc_html_e('Send an alert when the cheapest price of an extension falls by at least this much. Checked twice a day.', 'tlders-domain-prices'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+
                 <?php submit_button(); ?>
             </form>
+
+            <?php if ($account && !empty($s['push_enabled'])) : ?>
+                <h3><?php esc_html_e('Price-drop alerts', 'tlders-domain-prices'); ?></h3>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                    <input type="hidden" name="action" value="tlders_dp_push_check">
+                    <?php wp_nonce_field('tlders_dp_push'); ?>
+                    <?php submit_button(__('Check prices now', 'tlders-domain-prices'), 'secondary', 'tlders_push_check', false); ?>
+                    <p class="description"><?php esc_html_e('The check also runs twice a day on its own. The first check only notes today\'s prices, so turning this on never sends a burst of alerts.', 'tlders-domain-prices'); ?></p>
+                </form>
+
+                <h3><?php esc_html_e('Send an offer to everyone', 'tlders-domain-prices'); ?></h3>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                    <input type="hidden" name="action" value="tlders_dp_push_offer">
+                    <?php wp_nonce_field('tlders_dp_push'); ?>
+                    <p><label for="tlders-offer-title"><strong><?php esc_html_e('Title', 'tlders-domain-prices'); ?></strong></label><br>
+                        <input id="tlders-offer-title" type="text" class="regular-text" maxlength="65" name="offer_title" placeholder="<?php echo esc_attr__('.com for $5.99 this week', 'tlders-domain-prices'); ?>"></p>
+                    <p><label for="tlders-offer-body"><strong><?php esc_html_e('Message', 'tlders-domain-prices'); ?></strong></label><br>
+                        <input id="tlders-offer-body" type="text" class="large-text" maxlength="178" name="offer_body" placeholder="<?php echo esc_attr__('Use code SAVE10 at checkout.', 'tlders-domain-prices'); ?>"></p>
+                    <?php submit_button(__('Send', 'tlders-domain-prices'), 'primary', 'tlders_push_send', false); ?>
+                    <p class="description"><?php esc_html_e('Goes to everyone who allowed offers in the app. It also proves your Firebase setup works.', 'tlders-domain-prices'); ?></p>
+                </form>
+            <?php endif; ?>
 
             <h2><?php esc_html_e('Blocks, widgets and shortcodes', 'tlders-domain-prices'); ?></h2>
             <p><?php esc_html_e('In the block editor, add the "Domain Prices" block. In classic themes, add the "TLDers Domain Prices" widget under Appearance → Widgets. Or use these shortcodes anywhere:', 'tlders-domain-prices'); ?></p>

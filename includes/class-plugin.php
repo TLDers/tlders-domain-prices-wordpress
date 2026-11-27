@@ -6,6 +6,8 @@ if (!defined('ABSPATH')) {
 
 use TLDers\Sdk\AppApi;
 use TLDers\Sdk\AppAuth;
+use TLDers\Sdk\Fcm;
+use TLDers\Sdk\PriceWatcher;
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Currency;
 use TLDers\Sdk\Links;
@@ -79,6 +81,17 @@ class TLDers_DP_Plugin
             'app_api' => 0,
             'app_key' => '',
             'app_name' => '',
+            // Shown on the app's About screen (all optional).
+            'about_text' => '',
+            'about_privacy' => '',
+            'about_terms' => '',
+            'about_support' => '',
+            'about_update' => '',
+            'min_app_version' => '',
+            // Push notifications through the owner's own Firebase project.
+            'push_enabled' => 0,
+            'push_account' => '', // the Firebase service account JSON (private: never shown again)
+            'push_min_drop' => 5, // percent
         ];
     }
 
@@ -131,6 +144,11 @@ class TLDers_DP_Plugin
                 $client->offers($tld);
             }
         }
+        // Price-drop alerts for the app (only when push is set up).
+        $watcher = $this->watcher();
+        if ($watcher !== null) {
+            $watcher->run();
+        }
     }
 
     public function clear_cache()
@@ -163,6 +181,8 @@ class TLDers_DP_Plugin
             '/search' => 'search',
             '/cheapest' => 'cheapest',
             '/tlds' => 'tlds',
+            '/promos' => 'promos',
+            '/tld/(?P<tld>[a-z0-9.-]{1,80})/history' => 'history',
             '/tld/(?P<tld>[a-z0-9.-]{1,80})' => 'tld',
         ];
         foreach ($routes as $route => $name) {
@@ -171,7 +191,7 @@ class TLDers_DP_Plugin
                 // Public: the same prices and buy links the site already shows.
                 'permission_callback' => '__return_true',
                 'callback' => function (WP_REST_Request $request) use ($name) {
-                    $path = $name === 'tld' ? 'tld/' . $request['tld'] : $name;
+                    $path = $name === 'tld' ? 'tld/' . $request['tld'] : ($name === 'history' ? 'tld/' . $request['tld'] . '/history' : $name);
                     $key = (string) $this->settings()['app_key'];
                     $query = $request->get_query_params();
                     /**
@@ -213,6 +233,38 @@ class TLDers_DP_Plugin
             // The app has no "theme" skin (no WordPress theme to follow): it uses Minimal.
             'skin' => $s['skin'] === 'theme' ? 'minimal' : $s['skin'],
             'accent' => '',
+            'about' => [
+                'text' => $s['about_text'],
+                'privacyUrl' => $s['about_privacy'],
+                'termsUrl' => $s['about_terms'],
+                'supportUrl' => $s['about_support'],
+                'updateUrl' => $s['about_update'],
+            ],
+            'minAppVersion' => $s['min_app_version'],
+            // The app only offers notifications when the site can really send them.
+            'push' => ['enabled' => $this->fcm() !== null],
         ]);
+    }
+
+    /** The Firebase sender, or null when push is off or the service account is missing or wrong. */
+    public function fcm()
+    {
+        $s = $this->settings();
+        if (empty($s['push_enabled']) || $s['push_account'] === '') {
+            return null;
+        }
+        list($account) = Fcm::parseServiceAccount($s['push_account']);
+        return $account ? new Fcm($account, new TLDers_DP_Transport(), new TLDers_DP_TransientCache()) : null;
+    }
+
+    /** Watches prices and sends drops to the apps. */
+    public function watcher()
+    {
+        $fcm = $this->fcm();
+        if ($fcm === null) {
+            return null;
+        }
+        $s = $this->settings();
+        return new PriceWatcher($this->client(), new TLDers_DP_TransientCache(), [$fcm, 'sendToTopic'], $this->currency(), ['minDropPct' => (float) $s['push_min_drop']]);
     }
 }

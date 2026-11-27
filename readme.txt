@@ -4,7 +4,7 @@ Tags: domain, domain prices, affiliate, price comparison, widget
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -90,6 +90,12 @@ This plugin needs the TLDers API (https://www.tlders.com) for domain prices. Wit
 
 TLDers [Terms of Service](https://www.tlders.com/terms) · [Privacy Policy](https://www.tlders.com/privacy)
 
+**Google Firebase Cloud Messaging (only if you turn on push notifications for the mobile app).** Push is off by default. When you paste your own Firebase service account and turn it on, the plugin signs in to Google (oauth2.googleapis.com) and sends notifications through Firebase Cloud Messaging (fcm.googleapis.com) from your site.
+
+* **What is sent, and when:** the notification title and text and the topic name (for example "offers" or "tld_com"), when you send an offer from the settings screen or when the twice-daily check finds a price drop. Your service account's private key is used only to sign in to Google and is never sent to TLDers. No visitor or device data is stored or sent by the plugin: people's phones subscribe to topics through your own Firebase project.
+
+Google [Terms of Service](https://policies.google.com/terms) · [Privacy Policy](https://policies.google.com/privacy) · [Firebase Terms](https://firebase.google.com/terms)
+
 == Installation ==
 
 1. Install and activate the plugin.
@@ -144,12 +150,18 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 
 == Changelog ==
 
-= 1.1.2 =
-* Fix: [tlders_tlds] showed nothing when "Hide registrars I have no link for" was on and the cheapest registrar had no link. It now lists the cheapest registrar you do show, and admins see why a list is empty.
+= 1.3.0 =
+* New: the mobile app API reports what this site supports (features), an About block (text and links), when prices were last updated, and the oldest app version allowed.
+* New: price history (/tld/{tld}/history) and active promo codes (/promos) for the app's chart and Offers screen.
+* New: optional push notifications through your own Firebase project: price-drop alerts for extensions people saved in the app (checked twice a day) and offers you send from the settings screen. Off by default; see External services.
+* New: settings for the app's About screen and a minimum app version.
 
 = 1.2.0 =
 * New: optional app key for the mobile app API. Only apps that sign their requests with the key can use it. Without a key the API behaves as before.
 * New: the mobile app API is limited to 240 requests a minute per IP address (filter: tlders_dp_app_rate_limit).
+
+= 1.1.2 =
+* Fix: [tlders_tlds] showed nothing when "Hide registrars I have no link for" was on and the cheapest registrar had no link. It now lists the cheapest registrar you do show, and admins see why a list is empty.
 
 = 1.1.1 =
 * Settings: [tlders_tlds] added to the shortcode help, and an Add-ons note with a link to the optional paid add-ons.
@@ -162,6 +174,9 @@ Pick one of the six skins in Settings. To fine-tune, override the `--tlders-acce
 * First release: Domain Prices block, sidebar widget, four shortcodes, six skins, live search, instant sorting, list/grid views, filtering, per-registrar affiliate links, currency conversion, savings and renewal insights, affiliate disclosure, background refresh and an optional mobile app API.
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+Adds price history, promo codes, an About block and optional push notifications to the mobile app API. Nothing changes until you use them.
 
 = 1.1.2 =
 Fixes [tlders_tlds] showing an empty list when only some registrars have your affiliate link.

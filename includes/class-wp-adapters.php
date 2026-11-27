@@ -9,7 +9,16 @@ class TLDers_DP_Transport implements TLDers\Sdk\Transport
 {
     public function get($url, array $headers)
     {
-        $response = wp_remote_get($url, ['headers' => $headers, 'timeout' => 30]);
+        return $this->result(wp_remote_get($url, ['headers' => $headers, 'timeout' => 30]));
+    }
+
+    public function post($url, array $headers, $body)
+    {
+        return $this->result(wp_remote_post($url, ['headers' => $headers, 'body' => (string) $body, 'timeout' => 30]));
+    }
+
+    private function result($response)
+    {
         if (is_wp_error($response)) {
             return [0, $response->get_error_message(), []];
         }

@@ -20,6 +20,10 @@ if (!defined('ABSPATH')) {
  *   GET {base}/tlds?q=&type=&category=&sort=popular|register|name&page=1&per=60
  *                                      every TLD with its cheapest price, filterable; also lists the
  *                                      available types and categories
+ *   GET {base}/tld/{tld}/history       the cheapest price over time, one point per change (1.3)
+ *   GET {base}/promos                  active registrar promo codes with the price after the code (1.3)
+ *
+ * /config lists what this server supports in "features", so an app can hide what an older server lacks.
  *
  * Prices in responses are already converted to the site's currency.
  *
@@ -29,6 +33,8 @@ if (!defined('ABSPATH')) {
 class AppApi
 {
     const CONTRACT = 1;
+    /** Bumped when routes or config fields are added (contract 1 stays compatible). */
+    const API_VERSION = '1.3';
     const MAX_CHEAPEST = 30;
 
     /** @var Client */
@@ -41,7 +47,8 @@ class AppApi
     private $site;
 
     /**
-     * @param array $site name, disclosure, popularTlds (string[]), skin, accent (#hex)
+     * @param array $site name, disclosure, popularTlds (string[]), skin, accent (#hex), and optionally
+     *                    about {text, privacyUrl, termsUrl, supportUrl, updateUrl}, push {enabled}, minAppVersion
      */
     public function __construct(Client $client, Links $links, Currency $currency, array $site)
     {
@@ -65,8 +72,14 @@ class AppApi
         if ($path === 'search') {
             return $this->search(isset($query['q']) ? (string) $query['q'] : '');
         }
+        if (preg_match('#^tld/([^/]+)/history$#', $path, $m)) {
+            return $this->history($m[1]);
+        }
         if (strpos($path, 'tld/') === 0) {
             return $this->tld(substr($path, 4), '');
+        }
+        if ($path === 'promos') {
+            return $this->promos();
         }
         if ($path === 'cheapest') {
             return [200, $this->cheapest(isset($query['tlds']) ? $query['tlds'] : '')];
@@ -77,10 +90,24 @@ class AppApi
         return [404, ['error' => 'Unknown endpoint.']];
     }
 
+    /** What this server can do, for the app to decide which screens to show. */
+    public function features()
+    {
+        $features = ['search', 'tld', 'cheapest', 'tlds', 'history', 'promos'];
+        if (!empty($this->site['push']['enabled'])) {
+            $features[] = 'push';
+        }
+        return $features;
+    }
+
     public function config()
     {
+        $about = isset($this->site['about']) && is_array($this->site['about']) ? $this->site['about'] : [];
+        $updated = $this->client->updatedAt();
         return [
             'contract' => self::CONTRACT,
+            'apiVersion' => self::API_VERSION,
+            'features' => $this->features(),
             'siteName' => (string) $this->site['name'],
             'disclosure' => (string) $this->site['disclosure'],
             'currency' => [
@@ -97,7 +124,73 @@ class AppApi
             // Free TLDers keys can only look up some TLDs; the app uses this to
             // say so instead of showing an empty result.
             'searchableTlds' => $this->client->plan() === 'paid' ? null : $this->client->freeTlds(),
+            // Shown on the app's About screen. Empty strings mean the owner has not set them.
+            'about' => [
+                'text' => isset($about['text']) ? (string) $about['text'] : '',
+                'privacyUrl' => isset($about['privacyUrl']) ? (string) $about['privacyUrl'] : '',
+                'termsUrl' => isset($about['termsUrl']) ? (string) $about['termsUrl'] : '',
+                'supportUrl' => isset($about['supportUrl']) ? (string) $about['supportUrl'] : '',
+                'updateUrl' => isset($about['updateUrl']) ? (string) $about['updateUrl'] : '',
+            ],
+            'pricesUpdatedAt' => $updated === null ? null : gmdate('c', $updated),
+            // An app older than this shows "please update" instead of working. '' = no minimum.
+            'minAppVersion' => isset($this->site['minAppVersion']) ? (string) $this->site['minAppVersion'] : '',
+            // Push notifications: the app subscribes to these topics once the person allows alerts.
+            'push' => [
+                'enabled' => !empty($this->site['push']['enabled']),
+                'offersTopic' => Fcm::TOPIC_OFFERS,
+                'tldTopicPrefix' => Fcm::TOPIC_TLD_PREFIX,
+            ],
         ];
+    }
+
+    public function history($tld)
+    {
+        $tld = Client::normalizeTld($tld);
+        if ($tld === '') {
+            return [400, ['error' => 'Invalid TLD.']];
+        }
+        if (!$this->client->canLookup($tld)) {
+            return [403, ['error' => "Prices for .$tld aren't available on this site."]];
+        }
+        $points = [];
+        foreach ($this->client->history($tld) as $p) {
+            $points[] = [
+                'date' => $p['date'],
+                'register' => $this->currency->convert($p['register']),
+                'renew' => $this->currency->convert($p['renew']),
+            ];
+        }
+        return [200, ['tld' => $tld, 'points' => $points]];
+    }
+
+    /** Active promo codes. Each has a buy link (the owner's affiliate link when set) to the registrar. */
+    public function promos()
+    {
+        $items = [];
+        foreach ($this->client->promos(40) as $p) {
+            $tld = $p['tld'] !== '' ? $p['tld'] : 'com';
+            $linked = $this->links->attach([[
+                'slug' => $p['slug'],
+                'name' => $p['name'],
+                'register' => $p['after'],
+                'renew' => null,
+                'transfer' => null,
+            ]], $tld);
+            $items[] = [
+                'code' => $p['code'],
+                'label' => $p['label'],
+                'registrar' => ['slug' => $p['slug'], 'name' => $p['name']],
+                'tld' => $p['tld'],
+                'regularPrice' => $this->currency->convert($p['regular']),
+                'priceAfterCode' => $this->currency->convert($p['after']),
+                'savingPercent' => $p['savingPct'],
+                'expiresAt' => $p['expires'],
+                'verified' => $p['verified'],
+                'buyUrl' => $linked ? $linked[0]['buyUrl'] : '',
+            ];
+        }
+        return [200, ['items' => $items]];
     }
 
     public function search($q)

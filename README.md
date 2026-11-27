@@ -127,6 +127,18 @@ everything else, so only your app can use it. Without a key the API stays open, 
 locks out apps built with the old one. Each IP address is limited to 240 requests a minute (change it with the
 `tlders_dp_app_rate_limit` filter).
 
+### App info and push notifications
+
+Under **Settings → TLDers Domain Prices** you can set what the app's About screen shows (text, privacy, terms, support and update links, and the
+oldest app version allowed). The app also gets a price-history chart and an Offers screen (current registrar promo codes with your affiliate
+links) from the plugin automatically.
+
+**Push notifications** are off by default and go through your own Firebase project: paste your service account file (Firebase, Project settings,
+Service accounts, Generate new private key), turn push on, and add the app's own `google-services.json`. The app subscribes people to an extension
+when they save it and allow alerts; twice a day the plugin checks prices and sends a notification when a saved extension's cheapest price drops by
+your chosen percentage. You can also send an offer to everyone from the settings screen. The plugin stores no phone or visitor data. Needs the PHP
+openssl extension. See "Privacy and external services" for what is sent to Google.
+
 ## Skins and styling
 
 | Skin | Look |
@@ -166,6 +178,11 @@ the extension being looked up. Your site's URL is sent in the User-Agent. Nothin
 about your visitors is sent. Clicks on fallback links (registrars without your link) go through
 `tlders.com/go`, which records the click with a hashed IP address and redirects.
 See the TLDers [Terms](https://www.tlders.com/terms) and [Privacy Policy](https://www.tlders.com/privacy).
+
+If (and only if) you turn on push notifications, the plugin also signs in to Google and sends notifications through Firebase Cloud Messaging
+from your site: the title, text and topic name of a notification (for example `offers` or `tld_com`). Your service account key is used only to sign in to
+Google and is never sent to TLDers. No visitor or device data is stored or sent by the plugin. See Google's
+[Terms](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy) and [Firebase Terms](https://firebase.google.com/terms).
 
 ## Support
 
