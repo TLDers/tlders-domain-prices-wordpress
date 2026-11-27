@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 use TLDers\Sdk\AppApi;
+use TLDers\Sdk\AppAuth;
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Currency;
 use TLDers\Sdk\Links;
@@ -76,6 +77,7 @@ class TLDers_DP_Plugin
             'credit' => 0,
             'skin' => 'theme',
             'app_api' => 0,
+            'app_key' => '',
             'app_name' => '',
         ];
     }
@@ -170,9 +172,29 @@ class TLDers_DP_Plugin
                 'permission_callback' => '__return_true',
                 'callback' => function (WP_REST_Request $request) use ($name) {
                     $path = $name === 'tld' ? 'tld/' . $request['tld'] : $name;
-                    list($status, $body) = $this->app_api()->handle($path, $request->get_query_params());
+                    $key = (string) $this->settings()['app_key'];
+                    $query = $request->get_query_params();
+                    /**
+                     * Filters how many app API requests one IP address may make per minute.
+                     *
+                     * @param int $limit
+                     */
+                    $limit = (int) apply_filters('tlders_dp_app_rate_limit', 240);
+                    $remote = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
+                    if (!AppAuth::withinRateLimit(new TLDers_DP_ShortCache(), $remote, $limit, 60)) {
+                        $deny = [429, ['error' => __('Too many requests. Try again in a minute.', 'tlders-domain-prices'), 'code' => 'rate_limited']];
+                    } else {
+                        $deny = AppAuth::check($key, $path, $query, $request->get_header('x_app_timestamp'), $request->get_header('x_app_signature'));
+                    }
+                    if ($deny !== null) {
+                        $response = new WP_REST_Response($deny[1], $deny[0]);
+                        $response->header('Cache-Control', 'no-store');
+                        return $response;
+                    }
+                    list($status, $body) = $this->app_api()->handle($path, $query);
                     $response = new WP_REST_Response($body, $status);
-                    $response->header('Cache-Control', 'public, max-age=3600');
+                    // With an app key set, shared caches (a CDN) must not hand the answer to anyone else.
+                    $response->header('Cache-Control', ($key !== '' ? 'private' : 'public') . ', max-age=3600');
                     return $response;
                 },
             ]);

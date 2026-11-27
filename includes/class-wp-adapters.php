@@ -57,3 +57,25 @@ class TLDers_DP_TransientCache implements TLDers\Sdk\Cache
         ));
     }
 }
+
+/**
+ * Short-lived counters for the app API rate limit. Unlike the price cache these expire for real
+ * after their window, so they do not pile up in the options table.
+ */
+class TLDers_DP_ShortCache implements TLDers\Sdk\Cache
+{
+    public function get($key, $allowStale = false)
+    {
+        $value = get_transient('tlders_dp_rl_' . md5($key));
+        return $value === false ? null : $value;
+    }
+
+    public function set($key, $value, $ttl)
+    {
+        set_transient('tlders_dp_rl_' . md5($key), $value, (int) $ttl);
+    }
+
+    public function clear()
+    {
+    }
+}

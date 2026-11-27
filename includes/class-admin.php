@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use TLDers\Sdk\AppAuth;
 use TLDers\Sdk\Client;
 use TLDers\Sdk\Links;
 
@@ -99,6 +100,14 @@ class TLDers_DP_Admin
         }
         $out['disclosure'] = sanitize_textarea_field(isset($input['disclosure']) ? $input['disclosure'] : '');
         $out['app_name'] = sanitize_text_field(isset($input['app_name']) ? $input['app_name'] : '');
+        // The app key is not a form field: it is only created or removed with the buttons.
+        $out['app_key'] = $old['app_key'];
+        $key_action = isset($input['key_action']) ? $input['key_action'] : '';
+        if ($key_action === 'generate') {
+            $out['app_key'] = AppAuth::generateKey();
+        } elseif ($key_action === 'remove') {
+            $out['app_key'] = '';
+        }
 
         // (A new API key resets the cache by itself — see Client.) A shorter
         // free list should stop serving TLDs that were dropped from it.
@@ -293,6 +302,20 @@ class TLDers_DP_Admin
                                     '<code>' . esc_html(rest_url(TLDers_DP_Plugin::REST_NAMESPACE)) . '</code>'
                                 );
                             ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('App key', 'tlders-domain-prices'); ?></th>
+                        <td>
+                            <?php if ($s['app_key'] !== '') : ?>
+                                <input type="text" class="large-text code" readonly value="<?php echo esc_attr($s['app_key']); ?>" onclick="this.select()">
+                                <p class="description"><?php esc_html_e('Put this in the app\'s config (appKey). Only apps that have it can read the app API. It is never sent over the network: the app uses it to sign each request. Keep it private.', 'tlders-domain-prices'); ?></p>
+                                <button type="submit" class="button" name="<?php echo esc_attr($field('key_action')); ?>" value="generate" onclick="return confirm('<?php echo esc_js(__('Create a new key? Apps built with the old key stop working until you update them.', 'tlders-domain-prices')); ?>')"><?php esc_html_e('Create a new key', 'tlders-domain-prices'); ?></button>
+                                <button type="submit" class="button" name="<?php echo esc_attr($field('key_action')); ?>" value="remove" onclick="return confirm('<?php echo esc_js(__('Remove the key? Anyone who knows the address can then use the app API.', 'tlders-domain-prices')); ?>')"><?php esc_html_e('Remove key', 'tlders-domain-prices'); ?></button>
+                            <?php else : ?>
+                                <p class="description"><strong><?php esc_html_e('No key set: anyone who knows the address can use the app API.', 'tlders-domain-prices'); ?></strong> <?php esc_html_e('Create a key so only your app can.', 'tlders-domain-prices'); ?></p>
+                                <button type="submit" class="button button-primary" name="<?php echo esc_attr($field('key_action')); ?>" value="generate"><?php esc_html_e('Create an app key', 'tlders-domain-prices'); ?></button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
