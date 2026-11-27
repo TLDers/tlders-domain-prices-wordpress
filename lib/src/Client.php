@@ -220,6 +220,61 @@ class Client
         return $best;
     }
 
+    /** Unix time prices were last fetched from TLDers, or null when nothing has been fetched yet. */
+    public function updatedAt()
+    {
+        $t = $this->cache->get('updated', true);
+        return is_int($t) ? $t : null;
+    }
+
+    /**
+     * The cheapest register and renew price for $tld over time (oldest first), one point per change:
+     * [['date' => '2026-11-01', 'register' => 5.47, 'renew' => 12.3], ...]. Empty when unavailable.
+     *
+     * @return array<int,array{date:string,register:?float,renew:?float}>
+     */
+    public function history($tld)
+    {
+        $tld = self::normalizeTld($tld);
+        if ($tld === '' || !$this->canLookup($tld)) {
+            return [];
+        }
+        $cached = $this->cache->get('history:' . $tld);
+        if (is_array($cached)) {
+            return $cached;
+        }
+        $json = $this->request('/tlds/' . rawurlencode($tld) . '/history', true, $status);
+        if ($json === null || !isset($json['data']) || !is_array($json['data'])) {
+            $stale = $this->cache->get('history:' . $tld, true);
+            return is_array($stale) ? $stale : [];
+        }
+        $points = self::cheapestOverTime($json['data']);
+        $this->cache->set('history:' . $tld, $points, 12 * 3600);
+        return $points;
+    }
+
+    /**
+     * Active registrar promo codes, best saving first. Expired ones are dropped.
+     *
+     * @return array<int,array{code:string,label:string,slug:string,name:string,tld:string,regular:?float,after:?float,savingPct:?int,expires:?string,verified:bool}>
+     */
+    public function promos($limit = 30)
+    {
+        $limit = max(1, min(100, (int) $limit));
+        $cached = $this->cache->get('promos');
+        if (is_array($cached)) {
+            return array_slice($cached, 0, $limit);
+        }
+        $json = $this->request('/promos?limit=100', true, $status);
+        if ($json === null || !isset($json['data']) || !is_array($json['data'])) {
+            $stale = $this->cache->get('promos', true);
+            return is_array($stale) ? array_slice($stale, 0, $limit) : [];
+        }
+        $promos = self::normalizePromos($json['data'], time());
+        $this->cache->set('promos', $promos, 6 * 3600);
+        return array_slice($promos, 0, $limit);
+    }
+
     /**
      * Registrars TLDers covers, keyed by slug. searchUrl is the registrar's
      * plain search page with a {domain} placeholder — the starting point for
@@ -361,6 +416,7 @@ class Client
         $index = array_keys($byTld);
         sort($index);
         $this->cache->set('book:index', $index, $keep);
+        $this->cache->set('updated', time(), 10 * 365 * 86400);
         $this->cache->set('book:fresh', time(), $this->ttl);
         $this->cache->set('plan', 'paid', $this->ttl);
     }
@@ -401,6 +457,7 @@ class Client
         }
         $offers = self::sortOffers($offers);
         $this->cache->set('offers:' . $tld, $offers, max($this->ttl, 24 * 3600));
+        $this->cache->set('updated', time(), 10 * 365 * 86400);
         return $offers;
     }
 
@@ -459,6 +516,113 @@ class Client
             return $a['register'] < $b['register'] ? -1 : 1;
         });
         return $offers;
+    }
+
+    /**
+     * Turns per-registrar price series into one line: the cheapest price at each date a price changed.
+     *
+     * @param array $series [['registrar' => [...], 'points' => [['fetchedAt' => ISO date, 'priceRegister' => n, 'priceRenew' => n]]]]
+     * @return array<int,array{date:string,register:?float,renew:?float}>
+     */
+    public static function cheapestOverTime(array $series)
+    {
+        $lines = [];
+        $dates = [];
+        foreach ($series as $one) {
+            if (!isset($one['points']) || !is_array($one['points'])) {
+                continue;
+            }
+            $line = [];
+            foreach ($one['points'] as $point) {
+                if (!isset($point['fetchedAt'])) {
+                    continue;
+                }
+                $date = substr((string) $point['fetchedAt'], 0, 10);
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                    continue;
+                }
+                $line[$date] = [
+                    isset($point['priceRegister']) ? self::price($point['priceRegister']) : null,
+                    isset($point['priceRenew']) ? self::price($point['priceRenew']) : null,
+                ];
+                $dates[$date] = true;
+            }
+            if ($line) {
+                ksort($line);
+                $lines[] = $line;
+            }
+        }
+        ksort($dates);
+        $out = [];
+        $last = null;
+        foreach (array_keys($dates) as $date) {
+            $register = null;
+            $renew = null;
+            foreach ($lines as $line) {
+                // Each registrar's price at $date is its latest point on or before it (a step line).
+                $at = null;
+                foreach ($line as $d => $prices) {
+                    if ($d > $date) {
+                        break;
+                    }
+                    $at = $prices;
+                }
+                if ($at === null) {
+                    continue;
+                }
+                if ($at[0] !== null && ($register === null || $at[0] < $register)) {
+                    $register = $at[0];
+                }
+                if ($at[1] !== null && ($renew === null || $at[1] < $renew)) {
+                    $renew = $at[1];
+                }
+            }
+            if ($register === null && $renew === null) {
+                continue;
+            }
+            $key = $register . '|' . $renew;
+            if ($key === $last) {
+                continue; // nothing changed: one point per change keeps the chart small
+            }
+            $last = $key;
+            $out[] = ['date' => $date, 'register' => $register, 'renew' => $renew];
+        }
+        return $out;
+    }
+
+    /**
+     * @param array $rows the "data" array of GET /promos
+     * @return array<int,array{code:string,label:string,slug:string,name:string,tld:string,regular:?float,after:?float,savingPct:?int,expires:?string,verified:bool}>
+     */
+    public static function normalizePromos(array $rows, $now)
+    {
+        $out = [];
+        foreach ($rows as $r) {
+            if (!is_array($r) || empty($r['code']) || empty($r['registrar']['slug'])) {
+                continue;
+            }
+            $expires = isset($r['expiresAt']) && is_string($r['expiresAt']) && $r['expiresAt'] !== '' ? $r['expiresAt'] : null;
+            if ($expires !== null && ($t = strtotime($expires)) !== false && $t < $now) {
+                continue;
+            }
+            $tld = isset($r['tld']) && $r['tld'] ? $r['tld'] : (isset($r['priceTld']) ? $r['priceTld'] : '');
+            $out[] = [
+                'code' => (string) $r['code'],
+                'label' => isset($r['discountLabel']) ? (string) $r['discountLabel'] : '',
+                'slug' => (string) $r['registrar']['slug'],
+                'name' => isset($r['registrar']['name']) ? (string) $r['registrar']['name'] : (string) $r['registrar']['slug'],
+                'tld' => self::normalizeTld((string) $tld),
+                'regular' => isset($r['regularPrice']) ? self::price($r['regularPrice']) : null,
+                'after' => isset($r['priceAfterCode']) ? self::price($r['priceAfterCode']) : null,
+                'savingPct' => isset($r['savingPercent']) && $r['savingPercent'] !== null ? (int) $r['savingPercent'] : null,
+                'expires' => $expires,
+                'verified' => !empty($r['isVerified']),
+            ];
+        }
+        usort($out, function ($a, $b) {
+            return ($b['savingPct'] === null ? -1 : $b['savingPct']) <=> ($a['savingPct'] === null ? -1 : $a['savingPct']);
+        });
+        return $out;
     }
 
     public static function normalizeTld($tld)
